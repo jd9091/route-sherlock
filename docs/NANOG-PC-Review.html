@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Route Sherlock - NANOG PC Review</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+            font-size: 11pt;
+            line-height: 1.4;
+            color: #1a1a1a;
+        }
+        h1 {
+            color: #0066cc;
+            font-size: 20pt;
+            margin-bottom: 5px;
+            border-bottom: 3px solid #0066cc;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #333;
+            font-size: 13pt;
+            margin-top: 20px;
+            margin-bottom: 8px;
+            background: #f0f0f0;
+            padding: 5px 10px;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 12pt;
+            margin-bottom: 20px;
+        }
+        .demo-box {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 9pt;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        .demo-box .cmd {
+            color: #569cd6;
+        }
+        .demo-box .score-good {
+            color: #4ec9b0;
+        }
+        .demo-box .score-warn {
+            color: #dcdcaa;
+        }
+        .demo-box .highlight {
+            color: #ce9178;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 10pt;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 6px 10px;
+            text-align: left;
+        }
+        th {
+            background: #f5f5f5;
+        }
+        .two-col {
+            display: flex;
+            gap: 20px;
+        }
+        .two-col > div {
+            flex: 1;
+        }
+        .validation {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .key-point {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        ul {
+            margin: 5px 0;
+            padding-left: 20px;
+        }
+        li {
+            margin: 3px 0;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+            font-size: 9pt;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Peer Risk Intelligence: Should You Peer With That ASN?</h1>
+<div class="subtitle">Route Sherlock - Open Source BGP Intelligence Tool | 30-Minute Talk with Live Demo</div>
+
+<h2>The Problem</h2>
+<p>Network operators make peering decisions based on PeeringDB profiles and gut feel. No open-source tool answers: <strong>"Is this network safe to peer with?"</strong></p>
+
+<h2>The Solution: Route Sherlock</h2>
+<p>CLI tool combining RIPEstat + PeeringDB + BGPStream to generate quantified peer risk scores.</p>
+
+<div class="demo-box">
+<span class="cmd">$ route-sherlock peer-risk AS13335</span>
+
+╔═══════════════════════ Peer Risk Score ═══════════════════════╗
+║ <span class="score-good">100/100</span> (100.0%)                                          ║
+║ Risk Level: <span class="score-good">LOW</span>                                            ║
+║ Recommendation: <span class="score-good">RECOMMENDED</span>                                ║
+╚═══════════════════════════════════════════════════════════════╝
+
+Category          Score    Key Factors
+─────────────────────────────────────────────────────────────────
+Maturity          <span class="score-good">20/20</span>    PeeringDB registered, IRR as-set
+Stability         <span class="score-good">30/30</span>    Stable routing behavior
+Incident History  <span class="score-good">30/30</span>    Multiple upstreams (2465)
+Policy            <span class="score-good">10/10</span>    Open peering policy
+Security          <span class="score-good">10/10</span>    IRR registered, multiple transits
+</div>
+
+<div class="two-col">
+<div>
+<h2>Scoring Algorithm</h2>
+<table>
+<tr><th>Category</th><th>Points</th><th>Factors</th></tr>
+<tr><td>Maturity</td><td>0-20</td><td>PeeringDB, IRR, IX count</td></tr>
+<tr><td>Stability</td><td>0-30</td><td>BGP update frequency</td></tr>
+<tr><td>Incident History</td><td>0-30</td><td>Topology, redundancy</td></tr>
+<tr><td>Policy</td><td>0-10</td><td>Open/Selective/Restrictive</td></tr>
+<tr><td>Security</td><td>0-10</td><td>IRR, transit relationships</td></tr>
+</table>
+</div>
+<div>
+<h2>Risk Levels</h2>
+<table>
+<tr><th>Score</th><th>Level</th><th>Action</th></tr>
+<tr><td>80-100</td><td style="color:green">LOW</td><td>Recommended</td></tr>
+<tr><td>60-79</td><td style="color:orange">MODERATE</td><td>Monitor closely</td></tr>
+<tr><td>40-59</td><td style="color:darkorange">ELEVATED</td><td>Caution</td></tr>
+<tr><td>0-39</td><td style="color:red">HIGH</td><td>Not recommended</td></tr>
+</table>
+</div>
+</div>
+
+<h2>Real-World Validation: Cloudflare 1.1.1.1 Incident (June 2024)</h2>
+
+<div class="demo-box">
+<span class="cmd">$ route-sherlock peer-risk AS267613</span>  <span class="highlight"># Eletronet - involved in incident</span>
+
+╔═══════════════════════ Peer Risk Score ═══════════════════════╗
+║ <span class="score-warn">72/100</span> (72.0%)                                           ║
+║ Risk Level: <span class="score-warn">MODERATE</span>                                       ║
+║ Recommendation: <span class="score-warn">ACCEPTABLE WITH MONITORING</span>                ║
+╚═══════════════════════════════════════════════════════════════╝
+
+Stability         <span class="score-warn">5/30</span>     High churn: 1637 updates/day (-25)
+
+⚠️ Warnings
+   • <span class="highlight">High BGP churn detected: 1637 updates/day</span>
+</div>
+
+<div class="validation">
+<strong>✓ Validation Result:</strong> AS267613 (Eletronet), which caused the June 2024 Cloudflare hijack, is correctly flagged with MODERATE risk and high BGP churn warning.
+</div>
+
+<h2>Historical Backtesting</h2>
+<div class="demo-box">
+<span class="cmd">$ route-sherlock backtest 1.1.1.0/24 --origin AS13335 --time "2024-06-27 18:00"</span>
+
+🚨 Anomalies Detected: 329
+
+#1 [HIGH] ROUTE LEAK
+   Time: <span class="highlight">2024-06-27T18:49:06</span>
+   AS Path: 50763 → 1031 → <span class="highlight">262504 → 267613</span> → 13335
+
+📅 Timeline:
+   First anomaly: 2024-06-27 18:49:06 UTC
+   Duration: 7.6 hours
+</div>
+
+<div class="validation">
+<strong>✓ Detected 2 minutes before</strong> Cloudflare's reported incident start time (18:51 UTC). Correctly identified AS267613 and AS262504 in leak path.
+</div>
+
+<h2>Talk Outline (30 min)</h2>
+<div class="two-col">
+<div>
+<ul>
+<li><strong>Problem</strong> (5 min) - Current peering decisions</li>
+<li><strong>Solution</strong> (3 min) - Route Sherlock intro</li>
+<li><strong>Live Demo</strong> (10 min) - peer-risk command</li>
+</ul>
+</div>
+<div>
+<ul>
+<li><strong>Algorithm</strong> (5 min) - Scoring breakdown</li>
+<li><strong>Validation</strong> (5 min) - Backtest demo</li>
+<li><strong>Q&A</strong> (2 min)</li>
+</ul>
+</div>
+</div>
+
+<div class="key-point">
+<strong>Key Differentiator:</strong> No existing open-source tool provides peer risk scoring. BGPalerter/ARTEMIS handle real-time monitoring; Route Sherlock answers <em>"Should I peer?"</em> before you establish the session.
+</div>
+
+<div class="footer">
+<strong>Data Sources:</strong> RIPEstat API, PeeringDB API, BGPStream (RouteViews/RIPE RIS) | <strong>Optional:</strong> Claude API for AI synthesis<br>
+<strong>Requirements:</strong> Python 3.11+, pybgpstream (for historical) | <strong>License:</strong> Open Source
+</div>
+
+</body>
+</html>
