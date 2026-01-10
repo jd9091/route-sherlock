@@ -40,43 +40,142 @@ For better rate limits and access to PeeringDB data:
 export PEERINGDB_API_KEY="your-key"
 ```
 
-## Quick Start
-
-```bash
-# Quick ASN lookup
-route-sherlock lookup AS13335
-
-# Peer risk assessment
-route-sherlock peer-risk AS64500
-route-sherlock peer-risk AS64500 --ai  # With AI analysis
-
-# Historical incident analysis
-route-sherlock backtest 1.1.1.0/24 --origin AS13335 --time "2024-06-27 18:00" --duration 3h
-
-# Investigate recent routing issues
-route-sherlock investigate AS16509 --time "2h ago"
-```
-
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `lookup` | Quick ASN or prefix information |
-| `peer-risk` | Risk assessment for peering decisions |
-| `backtest` | Historical BGP incident analysis |
-| `investigate` | Real-time routing investigation |
-| `peering-eval` | Evaluate peering opportunities |
-| `stability` | ASN stability scoring |
-| `ix-presence` | IX presence lookup |
-| `compare` | Side-by-side ASN comparison |
-
-## Peer Risk Scoring
-
-The `peer-risk` command provides a quantitative assessment:
+### `lookup` - Quick ASN/Prefix Information
 
 ```bash
-route-sherlock peer-risk AS64500 --my-asn AS13335
+$ route-sherlock lookup AS13335
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ AS13335 - CLOUDFLARENET                                                      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+  RIR             Unknown
+  Announced       ✓ Yes
+  IPv4 Prefixes   2445
+  IPv6 Prefixes   3016
+  Upstreams       2461
+  Downstreams     0
+  Top Upstreams   AS10030, AS10089, AS10094
+
+PeeringDB:
+
+  Type         Content
+  Policy       Open
+  IXes         350
+  IRR as-set   AS13335:AS-CLOUDFLARE
 ```
+
+### `peer-risk` - Peer Risk Assessment
+
+```bash
+$ route-sherlock peer-risk AS13335
+
+╔══════════════════════════════════════════ Peer Risk Score ═══════════════════════════════════════════╗
+║ 100/100 (100.0%)                                                                                     ║
+║ Risk Level: LOW                                                                                      ║
+║ Recommendation: RECOMMENDED                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+## Score Breakdown
+╭──────────────────┬───────┬────────────────────────────────────────────────────╮
+│ Category         │ Score │ Key Factors                                        │
+├──────────────────┼───────┼────────────────────────────────────────────────────┤
+│ Maturity         │ 20/20 │ PeeringDB registered (+5); IRR as-set: AS13335:... │
+│ Stability        │ 30/30 │ Low BGP churn rate                                 │
+│ Incident History │ 30/30 │ Multiple upstreams (2461) - good redundancy        │
+│ Policy           │ 10/10 │ Open peering policy (+10)                          │
+│ Security         │ 10/10 │ IRR registered (+3); Multiple transit relations... │
+╰──────────────────┴───────┴────────────────────────────────────────────────────╯
+
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ ✅ RECOMMENDED TO PEER                                                                               ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════╝
+```
+
+Add `--ai` for Claude-powered analysis:
+```bash
+route-sherlock peer-risk AS13335 --ai
+```
+
+### `compare` - Side-by-Side ASN Comparison
+
+```bash
+$ route-sherlock compare AS13335 AS15169
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ AS13335 vs AS15169                                                           ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+╭────────────────┬───────────────┬───────────┬─────────╮
+│ Metric         │       AS13335 │   AS15169 │ Winner  │
+├────────────────┼───────────────┼───────────┼─────────┤
+│ Name           │ CLOUDFLARENET │    GOOGLE │         │
+│ IPv4 Prefixes  │         2,445 │     1,104 │ AS13335 │
+│ IPv6 Prefixes  │         3,016 │       146 │ AS13335 │
+│ Upstreams      │         2,461 │       326 │ AS13335 │
+│ IXes           │           350 │       198 │ AS13335 │
+│ Peering Policy │          Open │ Selective │         │
+╰────────────────┴───────────────┴───────────┴─────────╯
+```
+
+### `stability` - ASN Stability Score
+
+```bash
+$ route-sherlock stability AS13335
+
+📊 Stability Analysis: AS13335
+Period: Last 90 days
+
+Stability Score: 94/100
+```
+
+### `ix-presence` - IX Presence Lookup
+
+```bash
+$ route-sherlock ix-presence AS13335
+
+🌐 IX Presence: AS13335
+
+350 IXes found
+
+Top IXes by speed:
+  DE-CIX Frankfurt    600 Gbps
+  LINX LON1           300 Gbps
+  AMS-IX              200 Gbps
+  ...
+```
+
+### `backtest` - Historical Incident Analysis
+
+Analyze past BGP incidents using RouteViews/RIPE RIS archives:
+
+```bash
+$ route-sherlock backtest 1.1.1.0/24 --origin AS13335 --time "2024-06-27 18:00" --duration 3h
+
+🚨 Anomalies Detected: 329
+
+#1 [HIGH] LEAK
+   Time: 2024-06-27T18:49:06
+   AS Path: 50763 → 1031 → 262504 → 267613 → 13335
+```
+
+Requires `bgpstream` and `pybgpstream` to be installed.
+
+### `investigate` - Routing Investigation
+
+```bash
+$ route-sherlock investigate AS16509 --time "2h ago"
+```
+
+### `peering-eval` - Peering Opportunity Evaluation
+
+```bash
+$ route-sherlock peering-eval --my-asn AS64500 --target AS13335
+```
+
+## Peer Risk Scoring
 
 **Scoring (100 points max):**
 - Maturity (20 pts): PeeringDB presence, IRR registration, IX count
@@ -90,20 +189,6 @@ route-sherlock peer-risk AS64500 --my-asn AS13335
 - 60-79: MODERATE RISK - Acceptable with monitoring
 - 40-59: ELEVATED RISK - Proceed with caution
 - 0-39: HIGH RISK - Not recommended
-
-## Historical Backtesting
-
-Analyze past incidents using BGPStream archives:
-
-```bash
-route-sherlock backtest 1.1.1.0/24 --origin AS13335 --time "2024-06-27 18:00" --duration 3h --ai
-```
-
-Detects:
-- More-specific hijacks
-- Origin mismatches
-- Route leaks
-- Path anomalies
 
 ## Data Sources
 
