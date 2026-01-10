@@ -242,6 +242,12 @@ $ route-sherlock peering-eval --my-asn AS64500 --target AS13335
 - **BGPStream** - Historical BGP archives from RouteViews and RIPE RIS
 - **Claude API** - AI-powered analysis and synthesis
 
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md) - System design, data flow, API details
+- [Features](docs/FEATURES.md) - Detailed feature documentation
+- [Development Log](docs/DEVELOPMENT-LOG.md) - Development history
+
 ## Requirements
 
 - Python 3.11+
