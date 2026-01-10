@@ -95,8 +95,53 @@ $ route-sherlock peer-risk AS13335
 ```
 
 Add `--ai` for Claude-powered analysis:
+
 ```bash
-route-sherlock peer-risk AS13335 --ai
+$ route-sherlock peer-risk AS13335 --ai
+
+## AI Risk Assessment
+╭──────────────────────────────────── AI-Generated Risk Assessment ────────────────────────────────────╮
+│                        BGP Peering Risk Assessment: AS13335 (Cloudflare)                             │
+│                                                                                                      │
+│                                          Executive Summary                                           │
+│                                                                                                      │
+│ Recommendation: YES - Establish peering with AS13335 immediately. This is an exceptional peering     │
+│ candidate with perfect risk scores (100/100), representing one of the world's largest content        │
+│ networks with open peering policies and excellent operational maturity.                              │
+│                                                                                                      │
+│                                           Key Risk Factors                                           │
+│                                                                                                      │
+│ Strengths (No significant concerns identified):                                                      │
+│                                                                                                      │
+│  1 Exceptional Network Maturity (20/20) - Cloudflare demonstrates gold-standard operational          │
+│    practices with PeeringDB registration, proper IRR AS-set (AS13335:AS-CLOUDFLARE), published       │
+│    peering policy, and massive global presence across 350 Internet Exchanges.                        │
+│  2 Robust Network Architecture - Strong redundancy with 2,461 upstream relationships and             │
+│    well-distributed connectivity through major carriers including diverse tier-1 providers.          │
+│  3 Open Peering Policy (10/10) - Cloudflare maintains an open peering policy with published          │
+│    guidelines, facilitating straightforward peering establishment.                                   │
+│                                                                                                      │
+│                                     Operational Recommendations                                      │
+│                                                                                                      │
+│ Low Risk - Standard Peering Process:                                                                 │
+│  • Proceed with normal peering establishment procedures                                              │
+│  • Contact Cloudflare's peering team through their published policy URL                              │
+│  • No additional risk mitigation measures required beyond standard practices                         │
+│                                                                                                      │
+│                                         Technical Safeguards                                         │
+│                                                                                                      │
+│ Max-Prefix Limits:                                                                                   │
+│  • IPv4: Set limit to 6,500 prefixes (20% buffer above current announced)                            │
+│  • IPv6: Set limit to 1,000 prefixes                                                                 │
+│                                                                                                      │
+│ IRR Filtering Requirements:                                                                          │
+│  • Mandatory: Filter against AS13335:AS-CLOUDFLARE AS-set                                            │
+│  • Validate all received prefixes against their registered IRR objects                               │
+│                                                                                                      │
+│ RPKI Policy Recommendations:                                                                         │
+│  • Apply "prefer-valid" RPKI validation policy                                                       │
+│  • Given Cloudflare's operational excellence, expect high RPKI compliance                            │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 ### `compare` - Side-by-Side ASN Comparison
