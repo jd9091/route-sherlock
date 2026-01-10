@@ -12,9 +12,15 @@ Historical BGP intelligence CLI for network operators. Answer questions like "Sh
 ## Installation
 
 ```bash
-# Clone and install
+# Clone the repo
 git clone https://github.com/jd9091/route-sherlock.git
 cd route-sherlock
+
+# Create virtual environment (requires Python 3.11+)
+python3.11 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install
 pip install -e .
 
 # For AI synthesis (optional)
