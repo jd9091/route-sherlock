@@ -309,16 +309,23 @@ Provide:
 
 ## Caching
 
-Responses are cached to reduce API calls:
+Responses are cached **in-memory** to reduce API calls within a session:
 
 ```python
+# In-memory dictionary store
+class MemoryCache:
+    _store: dict[str, tuple[Any, float | None]] = {}
+    # {key: (value, expires_at)}
+
 # Cache keys
 "ripestat:as-overview:13335"
 "peeringdb:net:asn=13335"
 "peeringdb:netixlan:asn=13335"
 ```
 
-**Cache Duration:** 15 minutes (configurable)
+**Storage:** RAM only (not persisted to disk)
+**TTL:** Optional per-key expiry
+**Scope:** Single CLI invocation (cache cleared when process exits)
 
 ## Error Handling
 
