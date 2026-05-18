@@ -184,6 +184,25 @@ def peer_risk(
     asyncio.run(run_peer_risk(target, my_asn, days, use_ai=ai))
 
 
+@app.command()
+def safeguards(
+    target: str = typer.Argument(..., help="Target ASN to evaluate (e.g., AS64500)"),
+    days: int = typer.Option(90, "--days", "-d", help="Days of history to analyze"),
+):
+    """
+    Generate concrete BGP safeguards for a candidate peer.
+
+    Runs the peer-risk pipeline and emits the maximum-prefix limit, IRR
+    filter target, and RPKI policy matching the resulting risk tier.
+
+    Examples:
+        route-sherlock safeguards AS267613
+        route-sherlock safeguards AS13335 --days 180
+    """
+    from route_sherlock.cli.commands import run_safeguards
+    asyncio.run(run_safeguards(target, days))
+
+
 def main():
     """Entry point for CLI."""
     app()

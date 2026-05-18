@@ -5,6 +5,7 @@ Historical BGP intelligence CLI for network operators. Answer questions like "Sh
 ## Features
 
 - **Peer Risk Scoring** - Quantitative risk assessment for peering decisions (0-100 score)
+- **Practical Safeguards** - Concrete `maximum-prefix`, IRR, and RPKI policy recommendations per risk tier
 - **Historical Backtesting** - Analyze past BGP incidents using RouteViews/RIPE RIS archives
 - **AI-Powered Analysis** - Claude-powered synthesis of complex routing data
 - **Multi-Source Intelligence** - Aggregates data from RIPEstat, PeeringDB, and BGPStream
@@ -143,6 +144,35 @@ $ route-sherlock peer-risk AS13335 --ai
 │  • Given Cloudflare's operational excellence, expect high RPKI compliance                            │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
+
+### `safeguards` - Per-Tier BGP Safeguards
+
+Turns a peer-risk score into concrete BGP configuration recommendations:
+`maximum-prefix` limit, IRR filter target, and RPKI policy — matching the
+risk tier (LOW / MODERATE / ELEVATED / HIGH).
+
+```bash
+$ route-sherlock safeguards AS267613
+
+ELETRONET S.A.  MODERATE  (72/100)
+
+╭───────────────────────┬───────────────────────────────────╮
+│ maximum-prefix (IPv4) │ 9  (1.5× announced (6))           │
+│ IRR filter target     │ RADB::AS-267613  (strict)         │
+│ RPKI policy           │ reject-invalid                    │
+│ Monitoring            │ recommended                       │
+│ Recommendation        │ Acceptable — implement monitoring │
+╰───────────────────────┴───────────────────────────────────╯
+```
+
+Tier mapping (see [Peer Risk Scoring](#peer-risk-scoring) for score→tier):
+
+| Risk     | Max-Prefix     | IRR Filter       | RPKI            |
+| -------- | -------------- | ---------------- | --------------- |
+| LOW      | 2× announced   | Standard         | Warn on invalid |
+| MODERATE | 1.5× announced | Strict           | Reject invalid  |
+| ELEVATED | 1.2× announced | Strict + verify  | Reject invalid  |
+| HIGH     | Decline        | N/A              | N/A             |
 
 ### `compare` - Side-by-Side ASN Comparison
 
