@@ -973,29 +973,19 @@ def run_backtest(prefix: str, origin: str, time_str: str, duration: str, use_ai:
 # Peer Risk Command
 # ============================================================================
 
-async def run_peer_risk(target_asn: str, my_asn: str | None, days: int, use_ai: bool = False):
+async def _gather_peer_risk_data(
+    target_asn_int: int,
+    my_asn_int: int | None,
+    days: int,
+    pdb_key: str | None,
+) -> dict[str, Any]:
+    """Run the full peer-risk data-collection pipeline.
+
+    Returns the risk_data dict with all scoring sections populated and
+    ``total_score``, ``max_score``, ``percentage``, ``risk_level``, and
+    ``recommendation`` set. Display is the caller's responsibility.
     """
-    Evaluate peering risk for an ASN.
-
-    Generates a risk score based on:
-    - Stability (BGP update frequency)
-    - Incident history (involvement in leaks/hijacks)
-    - Network maturity (PeeringDB completeness, IX presence)
-    - Policy compatibility
-    - Security posture (RPKI coverage)
-    """
-    target_asn_int = normalize_asn(target_asn)
-    my_asn_int = normalize_asn(my_asn) if my_asn else None
-    pdb_key = get_peeringdb_key()
-
-    console.print()
-    console.print(Panel(
-        f"[bold]🔒 Peer Risk Assessment: AS{target_asn_int}[/]",
-        box=box.DOUBLE,
-    ))
-
-    # Data collection
-    risk_data = {
+    risk_data: dict[str, Any] = {
         "target_asn": target_asn_int,
         "my_asn": my_asn_int,
         "analysis_period_days": days,
@@ -1290,6 +1280,43 @@ async def run_peer_risk(target_asn: str, my_asn: str | None, days: int, use_ai: 
     risk_data["risk_level"] = risk_level
     risk_data["recommendation"] = recommendation
 
+    return risk_data
+
+
+async def run_peer_risk(target_asn: str, my_asn: str | None, days: int, use_ai: bool = False):
+    """
+    Evaluate peering risk for an ASN.
+
+    Generates a risk score based on:
+    - Stability (BGP update frequency)
+    - Incident history (involvement in leaks/hijacks)
+    - Network maturity (PeeringDB completeness, IX presence)
+    - Policy compatibility
+    - Security posture (RPKI coverage)
+    """
+    target_asn_int = normalize_asn(target_asn)
+    my_asn_int = normalize_asn(my_asn) if my_asn else None
+    pdb_key = get_peeringdb_key()
+
+    console.print()
+    console.print(Panel(
+        f"[bold]🔒 Peer Risk Assessment: AS{target_asn_int}[/]",
+        box=box.DOUBLE,
+    ))
+
+    risk_data = await _gather_peer_risk_data(target_asn_int, my_asn_int, days, pdb_key)
+
+    risk_level = risk_data["risk_level"]
+    recommendation = risk_data["recommendation"]
+    total_score = risk_data["total_score"]
+    max_score = risk_data["max_score"]
+    risk_color = {
+        "LOW": "green",
+        "MODERATE": "yellow",
+        "ELEVATED": "orange1",
+        "HIGH": "red",
+    }.get(risk_level, "white")
+
     # ============================================================
     # DISPLAY RESULTS
     # ============================================================
@@ -1466,3 +1493,82 @@ async def run_peer_risk(target_asn: str, my_asn: str | None, days: int, use_ai: 
 
     console.print()
     console.print(f"[dim]Data sources: RIPEstat, PeeringDB | Analysis: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}[/]")
+
+
+# ============================================================================
+# Safeguards Command
+# ============================================================================
+
+async def run_safeguards(target_asn: str, days: int):
+    """
+    Generate concrete BGP safeguards for a candidate peer.
+
+    Runs the peer-risk pipeline and emits the maximum-prefix limit, IRR filter
+    target, and RPKI policy that match the resulting risk tier (per the
+    "Practical Safeguards by Risk Level" table).
+    """
+    from route_sherlock.analysis.safeguards import compute_safeguards
+
+    target_asn_int = normalize_asn(target_asn)
+    pdb_key = get_peeringdb_key()
+
+    console.print()
+    console.print(Panel(
+        f"[bold]🛡 Safeguards: AS{target_asn_int}[/]",
+        box=box.DOUBLE,
+    ))
+
+    risk_data = await _gather_peer_risk_data(target_asn_int, None, days, pdb_key)
+    sg = compute_safeguards(risk_data)
+
+    risk_color = {
+        "LOW": "green",
+        "MODERATE": "yellow",
+        "ELEVATED": "orange1",
+        "HIGH": "red",
+    }.get(sg["risk_level"], "white")
+
+    network_name = sg.get("network_name") or f"AS{target_asn_int}"
+    console.print()
+    console.print(f"[bold]{network_name}[/]  "
+                  f"[{risk_color}]{sg['risk_level']}[/]  "
+                  f"[dim]({sg['total_score']}/{sg['max_score']})[/]")
+    console.print()
+
+    table = Table(box=box.ROUNDED, show_header=False)
+    table.add_column("Field", style="bold")
+    table.add_column("Value")
+
+    if sg["decline"]:
+        table.add_row("Recommendation", f"[red]{sg['recommendation']}[/]")
+    else:
+        max_prefix = sg["max_prefix"]
+        max_prefix_str = (
+            f"[bold]{max_prefix}[/]  [dim]({sg['max_prefix_basis']})[/]"
+            if max_prefix is not None
+            else f"[yellow]unknown[/]  [dim]({sg['max_prefix_basis']})[/]"
+        )
+        irr_filter = sg["irr_filter"] or "[yellow]none registered[/]"
+        table.add_row("maximum-prefix (IPv4)", max_prefix_str)
+        table.add_row("IRR filter target", f"{irr_filter}  [dim]({sg['irr_strictness']})[/]")
+        table.add_row("RPKI policy", sg["rpki_policy"])
+        table.add_row("Monitoring", sg["monitoring"])
+        table.add_row("Recommendation", f"[{risk_color}]{sg['recommendation']}[/]")
+
+    console.print(table)
+
+    if sg["rationale"]:
+        console.print()
+        console.print("[bold cyan]## Why[/]")
+        for line in sg["rationale"]:
+            console.print(f"   • {line}")
+
+    if sg["warnings"]:
+        console.print()
+        console.print("[bold yellow]## ⚠ Verify[/]")
+        for warning in sg["warnings"]:
+            console.print(f"   • {warning}")
+
+    console.print()
+    console.print(f"[dim]Data sources: RIPEstat, PeeringDB | "
+                  f"Analysis: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}[/]")
