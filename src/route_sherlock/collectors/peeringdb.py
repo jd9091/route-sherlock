@@ -213,7 +213,8 @@ class PeeringDBClient:
 
         Honors a numeric Retry-After header if present (PeeringDB sends one
         on 429s). Otherwise: exponential backoff (2^attempt) capped at 30s,
-        plus 0–500 ms of jitter to avoid thundering-herd on parallel demos.
+        plus 0–500 ms of jitter to avoid thundering-herd when many callers
+        retry simultaneously.
         """
         if retry_after is not None:
             try:
