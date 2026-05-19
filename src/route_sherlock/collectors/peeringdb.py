@@ -12,6 +12,7 @@ Usage:
 from __future__ import annotations
 
 import asyncio
+import random
 from typing import Any
 from urllib.parse import urlencode
 
@@ -161,7 +162,8 @@ class PeeringDBClient:
         # Build URL
         url = f"{self.BASE_URL}/{endpoint}"
 
-        # Make request with retries
+        # Make request with retries. 429 (rate limit) and 5xx are retried with
+        # exponential backoff + jitter; Retry-After is honored when present.
         last_error: Exception | None = None
         for attempt in range(self.max_retries):
             try:
@@ -174,7 +176,13 @@ class PeeringDBClient:
                 if response.status_code == 404:
                     raise PeeringDBNotFoundError(f"Resource not found: {endpoint}")
                 if response.status_code == 429:
-                    raise PeeringDBRateLimitError("Rate limit exceeded")
+                    last_error = PeeringDBRateLimitError("Rate limit exceeded")
+                    if attempt < self.max_retries - 1:
+                        await asyncio.sleep(
+                            self._retry_delay(attempt, response.headers.get("Retry-After"))
+                        )
+                        continue
+                    raise last_error
 
                 response.raise_for_status()
                 data = response.json()
@@ -190,14 +198,31 @@ class PeeringDBClient:
                 if e.response.status_code in (401, 403, 404):
                     raise
                 if attempt < self.max_retries - 1:
-                    await asyncio.sleep(2 ** attempt)
+                    await asyncio.sleep(self._retry_delay(attempt))
 
             except httpx.RequestError as e:
                 last_error = e
                 if attempt < self.max_retries - 1:
-                    await asyncio.sleep(2 ** attempt)
+                    await asyncio.sleep(self._retry_delay(attempt))
 
         raise PeeringDBError(f"Request failed after {self.max_retries} attempts: {last_error}")
+
+    @staticmethod
+    def _retry_delay(attempt: int, retry_after: str | None = None) -> float:
+        """Compute retry delay in seconds.
+
+        Honors a numeric Retry-After header if present (PeeringDB sends one
+        on 429s). Otherwise: exponential backoff (2^attempt) capped at 30s,
+        plus 0–500 ms of jitter to avoid thundering-herd on parallel demos.
+        """
+        if retry_after is not None:
+            try:
+                base = float(retry_after)
+            except ValueError:
+                base = 2 ** attempt
+        else:
+            base = 2 ** attempt
+        return min(base, 30.0) + random.uniform(0, 0.5)
 
     def _extract_data(self, response: dict[str, Any]) -> list[dict[str, Any]]:
         """Extract data array from response."""

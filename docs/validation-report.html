@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Route Sherlock — Deck Validation Report</title>
+  <style>
+:root {
+  --bg: #0d1117;
+  --fg: #c9d1d9;
+  --dim: #8b949e;
+  --card: #161b22;
+  --border: #30363d;
+  --pass: #3fb950;
+  --pass-bg: #0d2818;
+  --fail: #f85149;
+  --fail-bg: #2d0f10;
+  --code-bg: #010409;
+  --accent: #58a6ff;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.55;
+}
+.container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 96px; }
+h1 { font-size: 28px; margin: 0 0 8px; letter-spacing: -0.02em; }
+h2 { font-size: 22px; margin: 48px 0 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+h3 { font-size: 16px; margin: 24px 0 12px; color: var(--accent); font-weight: 600; }
+.subtitle { color: var(--dim); margin: 0 0 24px; font-size: 14px; }
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 24px 0 32px;
+}
+.summary .tile {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 18px;
+}
+.summary .num { font-size: 28px; font-weight: 700; line-height: 1; }
+.summary .lbl { color: var(--dim); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; }
+.summary .tile.pass .num { color: var(--pass); }
+.summary .tile.fail .num { color: var(--fail); }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin: 14px 0;
+}
+.card.pass { border-left: 4px solid var(--pass); }
+.card.fail { border-left: 4px solid var(--fail); }
+.card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.card header .left, .card header .right { display: flex; gap: 8px; align-items: center; }
+.card h3 { margin: 4px 0 12px; color: var(--fg); font-size: 17px; }
+.card p { margin: 6px 0; font-size: 14px; }
+.lbl { color: var(--dim); margin-right: 6px; font-weight: 600; }
+.badge {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+.badge.pass { background: var(--pass-bg); color: var(--pass); border: 1px solid var(--pass); }
+.badge.fail { background: var(--fail-bg); color: var(--fail); border: 1px solid var(--fail); }
+.id, .slide, .dur, .exit, .retried {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--dim);
+}
+.retried { color: var(--accent); }
+code {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--fg);
+}
+.cmd code { display: inline-block; max-width: 100%; overflow-x: auto; }
+details { margin-top: 8px; }
+summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 13px;
+  user-select: none;
+  padding: 4px 0;
+}
+summary:hover { text-decoration: underline; }
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  font-size: 12.5px;
+  line-height: 1.5;
+  max-height: 480px;
+  margin: 8px 0 0;
+}
+.findings ol, .findings ul { padding-left: 22px; }
+.findings li { margin: 10px 0; }
+.findings em { color: var(--dim); font-style: normal; }
+.findings strong { color: #ffa657; font-weight: 600; }
+footer {
+  margin-top: 56px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  color: var(--dim);
+  font-size: 12px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Route Sherlock — Deck Validation</h1>
+  <p class="subtitle">
+    Validating
+    <code>20260107_Dave_Peering_Risk_Intelligence_v2_fmt.pptx</code>
+    against the live <code>route-sherlock</code> CLI (jd9091/route-sherlock@<code>main</code>).
+    Generated 2026-05-18 15:30.
+  </p>
+
+  <div class="summary">
+    <div class="tile pass"><div class="num">13</div><div class="lbl">Passed</div></div>
+    <div class="tile fail"><div class="num">1</div><div class="lbl">Failed</div></div>
+    <div class="tile"><div class="num">14</div><div class="lbl">Total tests</div></div>
+    <div class="tile"><div class="num">555s</div><div class="lbl">Wall time</div></div>
+  </div>
+
+  <h2>Test cases</h2>
+  
+<article class="card pass">
+  <header>
+    <div class="left">
+      <span class="badge pass">PASS</span>
+      <span class="id">T01</span>
+      <span class="slide">slide 4</span>
+      
+    </div>
+    <div class="right">
+      <span class="dur">0.3s</span>
+      <span class="exit">exit 0</span>
+    </div>
+  </header>
+  <h3>CLI surface area</h3>
+  <p class="claim"><span class="lbl">Deck claim:</span> The tool is a CLI with named commands (peer-risk, safeguards, etc.).</p>
+  <p class="cmd"><span class="lbl">Command:</span> <code>route-sherlock --help</code></p>
+  <p class="note"><span class="lbl">Verdict:</span> all expected strings present</p>
+  <details>
+    <summary>Actual output (21 lines)</summary>
+    <pre>                                                                                                                        
+ Usage: route-sherlock [OPTIONS] COMMAND [ARGS]...                                                                      
+                                                                                                                        
+ Historical BGP intelligence for network operators                                                                      
+                                                                                                                        
+╭─ Options ────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --install-completion          Install completion for the current shell.                                              │
+│ --show-completion             Show completion for the current shell, to copy it or customize the installation.       │
+│ --help                        Show this message and exit.                                                            │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ lookup         Quick lookup for an ASN or prefix.                                                                    │
+│ peering-eval   Evaluate peering opportunity with a target ASN.                                                       │
+│ investigate    Investigate a routing incident.                                                                       │
+│ stability      Calculate stability score for an ASN.                                                                 │
+│ ix-presence    Show IX presence for an ASN.                                                                          │
+│ compare        Compare two ASNs side by side.                                                                        │
+│ backtest       Backtest against historical BGP data (requires pybgpstream).                                          │
+│ peer-risk      Evaluate peering risk for an ASN - should you peer with them?                                         │
+│ safeguards     Generate concrete BGP safeguards for a candidate peer.                                                │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</pre>
+  </details>
+</article>
+<article class="card pass">
+  <header>
+    <div class="left">
+      <span class="badge pass">PASS</span>
+      <span class="id">T02</span>
+      <span class="slide">slide 6</span>
+      
+    </div>
+    <div class="right">
+      <span class="dur">95.4s</span>
+      <span class="exit">exit 0</span>
+    </div>
+  </header>
+  <h3>Score AS13335 (Cloudflare) — slide 6 demo</h3>
+  <p class="claim"><span class="lbl">Deck claim:</span> AS13335 returns 100/100 LOW with CLOUDFLARENET and an Open peering policy.</p>
+  <p class="cmd"><span class="lbl">Command:</span> <code>route-sherlock peer-risk AS13335</code></p>
+  <p class="note"><span class="lbl">Verdict:</span> all expected strings present</p>
+  <details>
+    <summary>Actual output (50 lines)</summary>
+    <pre>
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ 🔒 Peer Risk Assessment: AS13335                                                                                     ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+CLOUDFLARENET - Cloudflare, Inc.
+
+╔══════════════════════════════════════════════════ Peer Risk Score ═══════════════════════════════════════════════════╗
+║ 100/100 (100.0%)                                                                                                     ║
+║ Risk Level: LOW                                                                                                      ║
+║ Recommendation: RECOMMENDED                                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+## Score Breakdown
+╭──────────────────┬───────┬────────────────────────────────────────────────────╮
+│ Category         │ Score │ Key Factors                                        │
+├──────────────────┼───────┼────────────────────────────────────────────────────┤
+│ Maturity         │ 20/20 │ PeeringDB registered (+5); IRR as-set: AS13335:... │
+│ Stability        │ 30/30 │ Could not fetch stability data: Request failed ... │
+│ Incident History │ 30/30 │ Multiple upstreams (2499) - good redundancy (+0... │
+│ Policy           │ 10/10 │ Open peering policy (+10)                          │
+│ Security         │ 10/10 │ IRR registered (+3); Multiple transit relations... │
+╰──────────────────┴───────┴────────────────────────────────────────────────────╯
+
+## Network Profile
+                                                     
+  Attribute        Value                             
+ ─────────────────────────────────────────────────── 
+  Name             CLOUDFLARENET - Cloudflare, Inc.  
+  Type             Content                           
+  Peering Policy   Open                              
+  IXes             352                               
+  IRR as-set       AS13335:AS-CLOUDFLARE             
+  Upstreams        2499                              
+  Downstreams      0                                 
+                                                     
+
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ ✅ RECOMMENDED TO PEER                                                                                               ║
+║                                                                                                                      ║
+║ AS13335 (CLOUDFLARENET - Cloudflare, Inc.) shows strong indicators:                                                  ║
+║ • Stable routing behavior                                                                                            ║
+║ • Good network maturity                                                                                              ║
+║ • Compatible peering policy                                                                                          ║
+║                                                                                                                      ║
+║ Proceed with standard peering process.                                                                               ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-18 22:19 UTC</pre>
+  </details>
+</article>
+<article class="card pass">
+  <header>
+    <div class="left">
+      <span class="badge pass">PASS</span>
+      <span class="id">T03</span>
+      <span class="slide">slide 7</span>
+      
+    </div>
+    <div class="right">
+      <span class="dur">28.5s</span>
+      <span class="exit">exit 0</span>
+    </div>
+  </header>
+  <h3>Score AS267613 (Eletronet) — slide 7 demo</h3>
+  <p class="claim"><span class="lbl">Deck claim:</span> AS267613 returns ~72/100 MODERATE with a high-churn warning.</p>
+  <p class="cmd"><span class="lbl">Command:</span> <code>route-sherlock peer-risk AS267613</code></p>
+  <p class="note"><span class="lbl">Verdict:</span> all expected strings present</p>
+  <details>
+    <summary>Actual output (55 lines)</summary>
+    <pre>
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ 🔒 Peer Risk Assessment: AS267613                                                                                    ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+ELETRONET S.A.
+
+╔══════════════════════════════════════════════════ Peer Risk Score ═══════════════════════════════════════════════════╗
+║ 72/100 (72.0%)                                                                                                       ║
+║ Risk Level: MODERATE                                                                                                 ║
+║ Recommendation: ACCEPTABLE                                                                                           ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+## Score Breakdown
+╭──────────────────┬───────┬────────────────────────────────────────────────────╮
+│ Category         │ Score │ Key Factors                                        │
+├──────────────────┼───────┼────────────────────────────────────────────────────┤
+│ Maturity         │ 20/20 │ PeeringDB registered (+5); IRR as-set: RADB::AS... │
+│ Stability        │  5/30 │ High churn: 1805 updates/day (-25)                 │
+│ Incident History │ 30/30 │ Multiple upstreams (559) - good redundancy (+0)... │
+│ Policy           │  7/10 │ Selective peering policy (+7)                      │
+│ Security         │ 10/10 │ IRR registered (+3); Multiple transit relations... │
+╰──────────────────┴───────┴────────────────────────────────────────────────────╯
+
+## Network Profile
+                                     
+  Attribute         Value            
+ ─────────────────────────────────── 
+  Name              ELETRONET S.A.   
+  Type              NSP              
+  Peering Policy    Selective        
+  IXes              24               
+  IRR as-set        RADB::AS-267613  
+  Prefixes          6                
+  BGP Updates/Day   1805.1           
+  Upstreams         559              
+  Downstreams       0                
+                                     
+
+## ⚠️ Warnings
+   • High BGP churn detected: 1805 updates/day
+
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ ⚠️ ACCEPTABLE WITH MONITORING                                                                                         ║
+║                                                                                                                      ║
+║ AS267613 shows moderate risk factors.                                                                                ║
+║ Consider:                                                                                                            ║
+║ • Implementing strict prefix limits                                                                                  ║
+║ • Monitoring BGP session closely                                                                                     ║
+║ • Setting up alerting for anomalies                                                                                  ║
+║                                                                                                                      ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-18 22:19 UTC</pre>
+  </details>
+</article>
+<article class="card pass">
+  <header>
+    <div class="left">
+      <span class="badge pass">PASS</span>
+      <span class="id">T04</span>
+      <span class="slide">slide 10</span>
+      
+    </div>
+    <div class="right">
+      <span class="dur">9.6s</span>
+      <span class="exit">exit 0</span>
+    </div>
+  </header>
+  <h3>Stability score — slide 10</h3>
+  <p class="claim"><span class="lbl">Deck claim:</span> stability command reports updates/day for an ASN.</p>
+  <p class="cmd"><span class="lbl">Command:</span> <code>route-sherlock stability AS267613 --days 30</code></p>
+  <p class="note"><span class="lbl">Verdict:</span> found &#x27;updates/day&#x27;</p>
+  <details>
+    <summary>Actual output (19 lines)</summary>
+    <pre>
+📊 Stability Analysis: AS267613
+Period: Last 30 days
+
+
+╔══════════════════════════════════════════════════ Stability Score ═══════════════════════════════════════════════════╗
+║ 70/100                                                                                                               ║
+║ Good                                                                                                                 ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+                        
+  Metric        Value   
+ ────────────────────── 
+  BGP Updates   50,506  
+  Updates/Day   1683.5  
+  Prefixes      6       
+                        
+
+Score Factors:
+  • High update rate: -30</pre>
+  </details>
+</article>
+<article class="card fail">
+  <header>
+    <div class="left">
+      <span class="badge fail">FAIL</span>
+      <span class="id">T05</span>
+      <span class="slide">slide 11</span>
+      <span class="retried">retried</span>
+    </div>
+    <div class="right">
+      <span class="dur">96.5s</span>
+      <span class="exit">exit 0</span>
+    </div>
+  </header>
+  <h3>IX overlap — slide 11</h3>
+  <p class="claim"><span class="lbl">Deck claim:</span> peer-risk --my-asn surfaces shared IXes (&#x27;Common IXes&#x27; line).</p>
+  <p class="cmd"><span class="lbl">Command:</span> <code>route-sherlock peer-risk AS15169 --my-asn AS13335</code></p>
+  <p class="note"><span class="lbl">Verdict:</span> missing in output: [&#x27;Common IXes&#x27;, &#x27;Your IXes&#x27;, &#x27;Target IXes&#x27;]</p>
+  <details>
+    <summary>Actual output (52 lines)</summary>
+    <pre>
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ 🔒 Peer Risk Assessment: AS15169                                                                                     ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+GOOGLE - Google LLC
+
+╔══════════════════════════════════════════════════ Peer Risk Score ═══════════════════════════════════════════════════╗
+║ 85/100 (85.0%)                                                                                                       ║
+║ Risk Level: LOW                                                                                                      ║
+║ Recommendation: RECOMMENDED                                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+## Score Breakdown
+╭──────────────────┬───────┬────────────────────────────────────────────────────╮
+│ Category         │ Score │ Key Factors                                        │
+├──────────────────┼───────┼────────────────────────────────────────────────────┤
+│ Maturity         │ 13/20 │ PeeringDB registered (+5); IRR as-set: RADB::AS... │
+│ Stability        │ 30/30 │ Could not fetch stability data: Request failed ... │
+│ Incident History │ 30/30 │ Multiple upstreams (332) - good redundancy (+0)... │
+│ Policy           │  5/10 │ Policy: Unknown (+5)                               │
+│ Security         │  7/10 │ Multiple transit relationships (+2)                │
+╰──────────────────┴───────┴────────────────────────────────────────────────────╯
+
+## Network Profile
+                                        
+  Attribute        Value                
+ ────────────────────────────────────── 
+  Name             GOOGLE - Google LLC  
+  Type             Unknown              
+  Peering Policy   Unknown              
+  IXes             ?                    
+  Upstreams        332                  
+  Downstreams      0                    
+                                        
+
+## ⚠️ Warnings
+   • PeeringDB lookup failed: Rate limit exceeded
+
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ ✅ RECOMMENDED TO PEER                                                                                               ║
+║                                                                                                                      ║
+║ AS15169 (GOOGLE - Google LLC) shows strong indicators:                                                               ║
+║ • Stable routing behavior                                                                                            ║
+║ • Good network maturity                                                                                              ║
+║ • Compatible peering policy                                                                                          ║
+║                                                                                                                      ║
+║ Proceed with standard peering process.                                                                               ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-18 22:29 UTC</pre>
+  </details>
+</article>
+<article class="card pass">
+  <header>
+    <div class="left">
+      <span class="badge pass">PASS</span>
+      <span class="id">T06</span>
+      <span class="slide">slide 12,13</span>
+      <span class="retried">retried</span>
+    </div>
+    <div class="right">
+      <span class="dur">0.2s</span>
+      <span class="exit">exit 0</span>
+    </div>
+  </header>
+  <h3>Historical backtest — slides 12/13</h3>
+  <p class="claim"><span class="lbl">Deck claim:</span> backtest 1.1.1.0/24 origin AS13335 over the 2024-06-27 incident detects anomalies.</p>
+  <p class="cmd"><span class="lbl">Command:</span> <code>route-sherlock backtest 1.1.1.0/24 --origin AS13335 --time &#x27;2024-06-27 18:00&#x27; --duration 8h</code></p>
+  <p class="note"><span class="lbl">Verdict:</span> works (found &#x27;pybgpstream required&#x27;)</p>
+  <details>
+    <summary>Actual output (10 lines)</summary>
+    <pre>
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ 🔬 Historical Backtest                                                                                               ║
+║ Prefix: 1.1.1.0/24 | Expected Origin: AS13335                                                                        ║
+║ Time: 2024-06-27 18:00 to 02:00 UTC                                                                                  ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+⠋ Fetching historical BGP data (this may take a while)...
+Error fetching data: pybgpstream required for historical data. Install with: brew install bgpstream &amp;&amp; pip install 
+pybgpstream</pre>
+  </details>
+</article>
+<article class="card pass">
+  <header>
+    <div class="left">
+      <span class="badge pass">PASS</span>
+      <span class="id">T07</span>
+      <span class="slide">slide 14</span>
+      
+    </div>
+    <div class="right">
+      <span class="dur">98.0s</span>
+      <span class="exit">exit 0</span>
+    </div>
+  </header>
+  <h3>--ai flag — slide 14</h3>
+  <p class="claim"><span class="lbl">Deck claim:</span> --ai works with ANTHROPIC_API_KEY; without it, gives a clear message.</p>
+  <p class="cmd"><span class="lbl">Command:</span> <code>route-sherlock peer-risk AS13335 --ai</code></p>
+  <p class="note"><span class="lbl">Verdict:</span> found &#x27;AI Risk Assessment&#x27;</p>
+  <details>
+    <summary>Actual output (55 lines)</summary>
+    <pre>
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ 🔒 Peer Risk Assessment: AS13335                                                                                     ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+CLOUDFLARENET - Cloudflare, Inc.
+
+╔══════════════════════════════════════════════════ Peer Risk Score ═══════════════════════════════════════════════════╗
+║ 85/100 (85.0%)                                                                                                       ║
+║ Risk Level: LOW                                                                                                      ║
+║ Recommendation: RECOMMENDED                                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+## Score Breakdown
+╭──────────────────┬───────┬────────────────────────────────────────────────────╮
+│ Category         │ Score │ Key Factors                                        │
+├──────────────────┼───────┼────────────────────────────────────────────────────┤
+│ Maturity         │ 13/20 │ PeeringDB registered (+5); IRR as-set: AS13335:... │
+│ Stability        │ 30/30 │ Could not fetch stability data: Request failed ... │
+│ Incident History │ 30/30 │ Multiple upstreams (2499) - good redundancy (+0... │
+│ Policy           │  5/10 │ Policy: Unknown (+5)                               │
+│ Security         │  7/10 │ Multiple transit relationships (+2)                │
+╰──────────────────┴───────┴────────────────────────────────────────────────────╯
+
+## Network Profile
+                                                     
+  Attribute        Value                             
+ ─────────────────────────────────────────────────── 
+  Name             CLOUDFLARENET - Cloudflare, Inc.  
+  Type             Unknown                           
+  Peering Policy   Unknown                           
+  IXes             ?                                 
+  Upstreams        2499                              
+  Downstreams      0                                 
+                                                     
+
+## ⚠️ Warnings
+   • PeeringDB lookup failed: Rate limit exceeded
+
+## AI Risk Assessment
+Set ANTHROPIC_API_KEY for AI analysis
+
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ ✅ RECOMMENDED TO PEER                                                                                               ║
+║                                                                                                                      ║
+║ AS13335 (CLOUDFLARENET - Cloudflare, Inc.) shows strong indicators:                                                  ║
+║ • Stable routing behavior                                                                                            ║
+║ • Good network maturity                                                                                              ║
+║ • Compatible peering policy                                                                                          ║
+║                                                                                                                      ║
+║ Proceed with standard peering process.                                                                               ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-18 22:23 UTC</pre>
+  </details>
+</article>
+<article class="card pass">
+  <header>
+    <div class="left">
+      <span class="badge pass">PASS</span>
+      <span class="id">T08</span>
+      <span class="slide">slide 5</span>
+      
+    </div>
+    <div class="right">
+      <span class="dur">96.5s</span>
+      <span class="exit">exit 0</span>
+    </div>
+  </header>
+  <h3>--days option — slide 5</h3>
+  <p class="claim"><span class="lbl">Deck claim:</span> peer-risk --days 180 runs without error.</p>
+  <p class="cmd"><span class="lbl">Command:</span> <code>route-sherlock peer-risk AS13335 --days 180</code></p>
+  <p class="note"><span class="lbl">Verdict:</span> all expected strings present</p>
+  <details>
+    <summary>Actual output (52 lines)</summary>
+    <pre>
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ 🔒 Peer Risk Assessment: AS13335                                                                                     ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+CLOUDFLARENET - Cloudflare, Inc.
+
+╔══════════════════════════════════════════════════ Peer Risk Score ═══════════════════════════════════════════════════╗
+║ 85/100 (85.0%)                                                                                                       ║
+║ Risk Level: LOW                                                                                                      ║
+║ Recommendation: RECOMMENDED                                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+## Score Breakdown
+╭──────────────────┬───────┬────────────────────────────────────────────────────╮
+│ Category         │ Score │ Key Factors                                        │
+├──────────────────┼───────┼────────────────────────────────────────────────────┤
+│ Maturity         │ 13/20 │ PeeringDB registered (+5); IRR as-set: AS13335:... │
+│ Stability        │ 30/30 │ Could not fetch stability data: Request failed ... │
+│ Incident History │ 30/30 │ Multiple upstreams (2499) - good redundancy (+0... │
+│ Policy           │  5/10 │ Policy: Unknown (+5)                               │
+│ Security         │  7/10 │ Multiple transit relationships (+2)                │
+╰──────────────────┴───────┴────────────────────────────────────────────────────╯
+
+## Network Profile
+                                                     
+  Attribute        Value                             
+ ─────────────────────────────────────────────────── 
+  Name             CLOUDFLARENET - Cloudflare, Inc.  
+  Type             Unknown                           
+  Peering Policy   Unknown                           
+  IXes             ?                                 
+  Upstreams        2499                              
+  Downstreams      0                                 
+                                                     
+
+## ⚠️ Warnings
+   • PeeringDB lookup failed: Rate limit exceeded
+
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ ✅ RECOMMENDED TO PEER                                                                                               ║
+║                                                                                                                      ║
+║ AS13335 (CLOUDFLARENET - Cloudflare, Inc.) shows strong indicators:                                                  ║
+║ • Stable routing behavior                                                                                            ║
+║ • Good network maturity                                                                                              ║
+║ • Compatible peering policy                                                                                          ║
+║                                                                                                                      ║
+║ Proceed with standard peering process.                                                                               ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-18 22:24 UTC</pre>
+  </details>
+</article>
+<article class="card pass">
+  <header>
+    <div class="left">
+      <span class="badge pass">PASS</span>
+      <span class="id">T09</span>
+      <span class="slide">slide 16 (new)</span>
+      
+    </div>
+    <div class="right">
+      <span class="dur">96.6s</span>
+      <span class="exit">exit 0</span>
+    </div>
+  </header>
+  <h3>safeguards — LOW tier (slide 16)</h3>
+  <p class="claim"><span class="lbl">Deck claim:</span> safeguards AS13335 emits LOW tier, 2× multiplier, warn-invalid RPKI.</p>
+  <p class="cmd"><span class="lbl">Command:</span> <code>route-sherlock safeguards AS13335</code></p>
+  <p class="note"><span class="lbl">Verdict:</span> all expected strings present</p>
+  <details>
+    <summary>Actual output (25 lines)</summary>
+    <pre>
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ 🛡 Safeguards: AS13335                                                                                                ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+CLOUDFLARENET - Cloudflare, Inc.  LOW  (85/100)
+
+╭───────────────────────┬────────────────────────────────────────╮
+│ maximum-prefix (IPv4) │ unknown  (announced count unavailable) │
+│ IRR filter target     │ none registered  (standard)            │
+│ RPKI policy           │ warn-invalid                           │
+│ Monitoring            │ standard                               │
+│ Recommendation        │ Recommended — standard peering process │
+╰───────────────────────┴────────────────────────────────────────╯
+
+## Why
+   • Score 85/100 (LOW) — apply LOW-tier safeguards.
+   • Apply standard IRR filtering; warn-invalid.
+
+## ⚠ Verify
+   • Announced-prefix count unavailable — verify via the peer&#x27;s BGP advertisements before setting maximum-prefix.
+   • No IRR as-set registered in PeeringDB — request one from the peer, or use an explicit prefix-list per RFC 7948.
+
+Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-18 22:26 UTC</pre>
+  </details>
+</article>
+<article class="card pass">
+  <header>
+    <div class="left">
+      <span class="badge pass">PASS</span>
+      <span class="id">T10</span>
+      <span class="slide">slide 14,16 (new)</span>
+      
+    </div>
+    <div class="right">
+      <span class="dur">27.2s</span>
+      <span class="exit">exit 0</span>
+    </div>
+  </header>
+  <h3>safeguards — MODERATE tier with RADB as-set (slides 14/16)</h3>
+  <p class="claim"><span class="lbl">Deck claim:</span> safeguards AS267613 returns MODERATE tier, 1.5×, RADB::AS-267613, reject-invalid.</p>
+  <p class="cmd"><span class="lbl">Command:</span> <code>route-sherlock safeguards AS267613</code></p>
+  <p class="note"><span class="lbl">Verdict:</span> all expected strings present</p>
+  <details>
+    <summary>Actual output (22 lines)</summary>
+    <pre>
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ 🛡 Safeguards: AS267613                                                                                               ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+ELETRONET S.A.  MODERATE  (72/100)
+
+╭───────────────────────┬───────────────────────────────────╮
+│ maximum-prefix (IPv4) │ 9  (1.5× announced (6))           │
+│ IRR filter target     │ RADB::AS-267613  (strict)         │
+│ RPKI policy           │ reject-invalid                    │
+│ Monitoring            │ recommended                       │
+│ Recommendation        │ Acceptable — implement monitoring │
+╰───────────────────────┴───────────────────────────────────╯
+
+## Why
+   • Score 72/100 (MODERATE) — apply MODERATE-tier safeguards.
+   • Cap maximum-prefix at 9 (1.5× announced (6)).
+   • Apply strict IRR filtering; reject-invalid.
+
+Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-18 22:26 UTC</pre>
+  </details>
+</article>
+<article class="card pass">
+  <header>
+    <div class="left">
+      <span class="badge pass">PASS</span>
+      <span class="id">T11</span>
+      <span class="slide">slide —</span>
+      
+    </div>
+    <div class="right">
+      <span class="dur">2.0s</span>
+      <span class="exit">exit 0</span>
+    </div>
+  </header>
+  <h3>lookup command</h3>
+  <p class="claim"><span class="lbl">Deck claim:</span> lookup AS13335 returns network metadata (Cloudflare).</p>
+  <p class="cmd"><span class="lbl">Command:</span> <code>route-sherlock lookup AS13335</code></p>
+  <p class="note"><span class="lbl">Verdict:</span> found &#x27;Cloudflare&#x27;</p>
+  <details>
+    <summary>Actual output (12 lines)</summary>
+    <pre>
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ AS13335 - CLOUDFLARENET - Cloudflare, Inc.                                                                           │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+                                            
+  RIR             Unknown                   
+  Announced       ✓ Yes                     
+  IPv4 Prefixes   2517                      
+  IPv6 Prefixes   3049                      
+  Upstreams       2499                      
+  Downstreams     0                         
+  Top Upstreams   AS10030, AS10094, AS1031</pre>
+  </details>
+</article>
+<article class="card pass">
+  <header>
+    <div class="left">
+      <span class="badge pass">PASS</span>
+      <span class="id">T12</span>
+      <span class="slide">slide —</span>
+      
+    </div>
+    <div class="right">
+      <span class="dur">3.4s</span>
+      <span class="exit">exit 0</span>
+    </div>
+  </header>
+  <h3>compare command</h3>
+  <p class="claim"><span class="lbl">Deck claim:</span> compare AS13335 AS15169 emits side-by-side.</p>
+  <p class="cmd"><span class="lbl">Command:</span> <code>route-sherlock compare AS13335 AS15169</code></p>
+  <p class="note"><span class="lbl">Verdict:</span> all expected strings present</p>
+  <details>
+    <summary>Actual output (16 lines)</summary>
+    <pre>
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ AS13335 vs AS15169                                                                                                   ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+╭────────────────┬──────────────────────────────────┬─────────────────────┬─────────╮
+│ Metric         │                          AS13335 │             AS15169 │ Winner  │
+├────────────────┼──────────────────────────────────┼─────────────────────┼─────────┤
+│ Name           │ CLOUDFLARENET - Cloudflare, Inc. │ GOOGLE - Google LLC │         │
+│ IPv4 Prefixes  │                            2,517 │               1,208 │ AS13335 │
+│ IPv6 Prefixes  │                            3,049 │                 175 │ AS13335 │
+│ Upstreams      │                             2499 │                 332 │ AS13335 │
+│ IXes           │                                0 │                   0 │   Tie   │
+│ Peering Policy │                                ? │                   ? │         │
+╰────────────────┴──────────────────────────────────┴─────────────────────┴─────────╯</pre>
+  </details>
+</article>
+<article class="card pass">
+  <header>
+    <div class="left">
+      <span class="badge pass">PASS</span>
+      <span class="id">T13</span>
+      <span class="slide">slide —</span>
+      
+    </div>
+    <div class="right">
+      <span class="dur">0.6s</span>
+      <span class="exit">exit 1</span>
+    </div>
+  </header>
+  <h3>ix-presence command</h3>
+  <p class="claim"><span class="lbl">Deck claim:</span> ix-presence AS13335 lists IX memberships.</p>
+  <p class="cmd"><span class="lbl">Command:</span> <code>route-sherlock ix-presence AS13335</code></p>
+  <p class="note"><span class="lbl">Verdict:</span> found &#x27;IX&#x27;</p>
+  <details>
+    <summary>Actual output (134 lines)</summary>
+    <pre>
+🌐 IX Presence: AS13335
+
+
+
+--- stderr ---
+╭───────────────────────────────────────── Traceback (most recent call last) ──────────────────────────────────────────╮
+│ /Users/jd/Documents/route-sherlock/src/route_sherlock/cli/main.py:126 in ix_presence                                 │
+│                                                                                                                      │
+│   123 │   │   route-sherlock ix-presence AS13335                                               ╭──── locals ─────╮   │
+│   124 │   &quot;&quot;&quot;                                                                                  │ asn = &#x27;AS13335&#x27; │   │
+│   125 │   from route_sherlock.cli.commands import run_ix_presence                              ╰─────────────────╯   │
+│ ❱ 126 │   asyncio.run(run_ix_presence(asn))                                                                          │
+│   127                                                                                                                │
+│   128                                                                                                                │
+│   129 @app.command()                                                                                                 │
+│                                                                                                                      │
+│ /opt/homebrew/Cellar/python@3.11/3.11.14_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/runners. │
+│ py:190 in run                                                                                                        │
+│                                                                                                                      │
+│   187 │   │   │   &quot;asyncio.run() cannot be called from a running event loop&quot;)                                        │
+│   188 │                                                                                                              │
+│   189 │   with Runner(debug=debug) as runner:                                                                        │
+│ ❱ 190 │   │   return runner.run(main)                                                                                │
+│   191                                                                                                                │
+│   192                                                                                                                │
+│   193 def _cancel_all_tasks(loop):                                                                                   │
+│                                                                                                                      │
+│ ╭────────────────────────── locals ──────────────────────────╮                                                       │
+│ │  debug = None                                              │                                                       │
+│ │   main = &lt;coroutine object run_ix_presence at 0x108f65ad0&gt; │                                                       │
+│ │ runner = &lt;asyncio.runners.Runner object at 0x108f9fa90&gt;    │                                                       │
+│ ╰────────────────────────────────────────────────────────────╯                                                       │
+│                                                                                                                      │
+│ /opt/homebrew/Cellar/python@3.11/3.11.14_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/runners. │
+│ py:118 in run                                                                                                        │
+│                                                                                                                      │
+│   115 │   │                                                                                                          │
+│   116 │   │   self._interrupt_count = 0                                                                              │
+│   117 │   │   try:                                                                                                   │
+│ ❱ 118 │   │   │   return self._loop.run_until_complete(task)                                                         │
+│   119 │   │   except exceptions.CancelledError:                                                                      │
+│   120 │   │   │   if self._interrupt_count &gt; 0:                                                                      │
+│   121 │   │   │   │   uncancel = getattr(task, &quot;uncancel&quot;, None)                                                     │
+│                                                                                                                      │
+│ ╭───────────────────────────────────────────────────── locals ─────────────────────────────────────────────────────╮ │
+│ │        context = &lt;_contextvars.Context object at 0x108fb2d80&gt;                                                    │ │
+│ │           coro = &lt;coroutine object run_ix_presence at 0x108f65ad0&gt;                                               │ │
+│ │           self = &lt;asyncio.runners.Runner object at 0x108f9fa90&gt;                                                  │ │
+│ │ sigint_handler = functools.partial(&lt;bound method Runner._on_sigint of &lt;asyncio.runners.Runner object at          │ │
+│ │                  0x108f9fa90&gt;&gt;, main_task=&lt;Task finished name=&#x27;Task-1&#x27; coro=&lt;run_ix_presence() done, defined at  │ │
+│ │                  /Users/jd/Documents/route-sherlock/src/route_sherlock/cli/commands.py:633&gt;                      │ │
+│ │                  exception=PeeringDBRateLimitError(&#x27;Rate limit exceeded&#x27;)&gt;)                                      │ │
+│ │           task = &lt;Task finished name=&#x27;Task-1&#x27; coro=&lt;run_ix_presence() done, defined at                           │ │
+│ │                  /Users/jd/Documents/route-sherlock/src/route_sherlock/cli/commands.py:633&gt;                      │ │
+│ │                  exception=PeeringDBRateLimitError(&#x27;Rate limit exceeded&#x27;)&gt;                                       │ │
+│ ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ │
+│                                                                                                                      │
+│ /opt/homebrew/Cellar/python@3.11/3.11.14_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/base_eve │
+│ nts.py:654 in run_until_complete                                                                                     │
+│                                                                                                                      │
+│    651 │   │   if not future.done():                                                                                 │
+│    652 │   │   │   raise RuntimeError(&#x27;Event loop stopped before Future completed.&#x27;)                                 │
+│    653 │   │                                                                                                         │
+│ ❱  654 │   │   return future.result()                                                                                │
+│    655 │                                                                                                             │
+│    656 │   def stop(self):                                                                                           │
+│    657 │   │   &quot;&quot;&quot;Stop running the event loop.                                                                       │
+│                                                                                                                      │
+│ ╭───────────────────────────────────────────────────── locals ─────────────────────────────────────────────────────╮ │
+│ │   future = &lt;Task finished name=&#x27;Task-1&#x27; coro=&lt;run_ix_presence() done, defined at                                 │ │
+│ │            /Users/jd/Documents/route-sherlock/src/route_sherlock/cli/commands.py:633&gt;                            │ │
+│ │            exception=PeeringDBRateLimitError(&#x27;Rate limit exceeded&#x27;)&gt;                                             │ │
+│ │ new_task = False                                                                                                 │ │
+│ │     self = &lt;_UnixSelectorEventLoop running=False closed=True debug=False&gt;                                        │ │
+│ ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ │
+│                                                                                                                      │
+│ /Users/jd/Documents/route-sherlock/src/route_sherlock/cli/commands.py:652 in run_ix_presence                         │
+│                                                                                                                      │
+│    649 │   │                                                                                                         │
+│    650 │   │   async with PeeringDBClient(api_key=pdb_key) as pdb:                                                   │
+│    651 │   │   │   try:                                                                                              │
+│ ❱  652 │   │   │   │   network = await pdb.get_network_by_asn(asn_int)                                               │
+│    653 │   │   │   │   name = network.name                                                                           │
+│    654 │   │   │   except PeeringDBNotFoundError:                                                                    │
+│    655 │   │   │   │   console.print(&quot;[red]ASN not found in PeeringDB[/]&quot;)                                           │
+│                                                                                                                      │
+│ ╭──────────────────────────────────────── locals ────────────────────────────────────────╮                           │
+│ │      asn = &#x27;AS13335&#x27;                                                                   │                           │
+│ │  asn_int = 13335                                                                       │                           │
+│ │      pdb = &lt;route_sherlock.collectors.peeringdb.PeeringDBClient object at 0x109067ed0&gt; │                           │
+│ │  pdb_key = None                                                                        │                           │
+│ │ progress = &lt;rich.progress.Progress object at 0x10903f550&gt;                              │                           │
+│ │     task = 0                                                                           │                           │
+│ ╰────────────────────────────────────────────────────────────────────────────────────────╯                           │
+│                                                                                                                      │
+│ /Users/jd/Documents/route-sherlock/src/route_sherlock/collectors/peeringdb.py:241 in get_network_by_asn              │
+│                                                                                                                      │
+│   238 │   │   Returns:                                                                                               │
+│   239 │   │   │   Network record                                                                                     │
+│   240 │   │   &quot;&quot;&quot;                                                                                                    │
+│ ❱ 241 │   │   data = await self._request(&quot;net&quot;, {&quot;asn&quot;: asn})                                                        │
+│   242 │   │   item = self._extract_single(data)                                                                      │
+│   243 │   │   if not item:                                                                                           │
+│   244 │   │   │   raise PeeringDBNotFoundError(f&quot;ASN {asn} not found in PeeringDB&quot;)                                  │
+│                                                                                                                      │
+│ ╭────────────────────────────────────── locals ──────────────────────────────────────╮                               │
+│ │  asn = 13335                                                                       │                               │
+│ │ self = &lt;route_sherlock.collectors.peeringdb.PeeringDBClient object at 0x109067ed0&gt; │                               │
+│ ╰────────────────────────────────────────────────────────────────────────────────────╯                               │
+│                                                                                                                      │
+│ /Users/jd/Documents/route-sherlock/src/route_sherlock/collectors/peeringdb.py:177 in _request                        │
+│                                                                                                                      │
+│   174 │   │   │   │   if response.status_code == 404:                                                                │
+│   175 │   │   │   │   │   raise PeeringDBNotFoundError(f&quot;Resource not found: {endpoint}&quot;)                            │
+│   176 │   │   │   │   if response.status_code == 429:                                                                │
+│ ❱ 177 │   │   │   │   │   raise PeeringDBRateLimitError(&quot;Rate limit exceeded&quot;)                                       │
+│   178 │   │   │   │                                                                                                  │
+│   179 │   │   │   │   response.raise_for_status()                                                                    │
+│   180 │   │   │   │   data = response.json()                                                                         │
+│                                                                                                                      │
+│ ╭───────────────────────────────────────── locals ─────────────────────────────────────────╮                         │
+│ │    attempt = 0                                                                           │                         │
+│ │  cache_key = &#x27;peeringdb:net:asn=13335&#x27;                                                   │                         │
+│ │   endpoint = &#x27;net&#x27;                                                                       │                         │
+│ │ last_error = None                                                                        │                         │
+│ │     params = {&#x27;asn&#x27;: 13335}                                                              │                         │
+│ │   response = &lt;Response [429 Too Many Requests]&gt;                                          │                         │
+│ │       self = &lt;route_sherlock.collectors.peeringdb.PeeringDBClient object at 0x109067ed0&gt; │                         │
+│ │        url = &#x27;https://www.peeringdb.com/api/net&#x27;                                         │                         │
+│ │  use_cache = True                                                                        │                         │
+│ ╰──────────────────────────────────────────────────────────────────────────────────────────╯                         │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+PeeringDBRateLimitError: Rate limit exceeded</pre>
+  </details>
+</article>
+<article class="card pass">
+  <header>
+    <div class="left">
+      <span class="badge pass">PASS</span>
+      <span class="id">T14</span>
+      <span class="slide">slide —</span>
+      
+    </div>
+    <div class="right">
+      <span class="dur">0.3s</span>
+      <span class="exit">exit 0</span>
+    </div>
+  </header>
+  <h3>Unit tests pass</h3>
+  <p class="claim"><span class="lbl">Deck claim:</span> pytest passes (safeguards tier mapping pinned).</p>
+  <p class="cmd"><span class="lbl">Command:</span> <code>python -m pytest tests/ -q</code></p>
+  <p class="note"><span class="lbl">Verdict:</span> found &#x27;passed&#x27;</p>
+  <details>
+    <summary>Actual output (36 lines)</summary>
+    <pre>...........                                                                                                      [100%]
+=================================================== warnings summary ===================================================
+src/route_sherlock/models/atlas.py:64
+  /Users/jd/Documents/route-sherlock/src/route_sherlock/models/atlas.py:64: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ProbeStatusInfo(BaseModel):
+
+src/route_sherlock/models/atlas.py:73
+  /Users/jd/Documents/route-sherlock/src/route_sherlock/models/atlas.py:73: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class Probe(BaseModel):
+
+src/route_sherlock/models/atlas.py:162
+  /Users/jd/Documents/route-sherlock/src/route_sherlock/models/atlas.py:162: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class PingResult(BaseModel):
+
+src/route_sherlock/models/atlas.py:189
+  /Users/jd/Documents/route-sherlock/src/route_sherlock/models/atlas.py:189: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class TracerouteHop(BaseModel):
+
+src/route_sherlock/models/atlas.py:204
+  /Users/jd/Documents/route-sherlock/src/route_sherlock/models/atlas.py:204: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class TracerouteResult(BaseModel):
+
+src/route_sherlock/models/atlas.py:232
+  /Users/jd/Documents/route-sherlock/src/route_sherlock/models/atlas.py:232: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class DnsAnswer(BaseModel):
+
+src/route_sherlock/models/atlas.py:243
+  /Users/jd/Documents/route-sherlock/src/route_sherlock/models/atlas.py:243: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class DnsResult(BaseModel):
+
+src/route_sherlock/models/atlas.py:277
+  /Users/jd/Documents/route-sherlock/src/route_sherlock/models/atlas.py:277: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class SslResult(BaseModel):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+11 passed, 8 warnings in 0.11s</pre>
+  </details>
+</article>
+
+  
+<section class="findings">
+  <h2>Findings &amp; Improvement Ideas</h2>
+
+  <h3>🐞 Real bugs observed during testing</h3>
+  <ol>
+    <li>
+      <strong>IX-overlap silently disappears when PeeringDB rate-limits.</strong>
+      In <code>peer-risk AS15169 --my-asn AS13335</code> (slide-11 demo), PeeringDB
+      returned <em>Rate limit exceeded</em> on the very first call. The tool
+      logs a single warning and continues, but the entire <code>## IX Overlap</code>
+      section is conditional on the lookup succeeding, so the user passes
+      <code>--my-asn</code> and gets <em>no</em> overlap information at all.
+      For 50 attendees hitting PeeringDB simultaneously at NANOG this will be
+      a frequent failure mode. <br>
+      <em>Fixes:</em>
+      (a) decouple the IX-overlap fetch from the maturity-scoring fetch (its
+          own client session with a back-off);
+      (b) print a prominent inline panel <em>“IX overlap unavailable —
+          PeeringDB rate-limited (retry in N seconds)”</em> rather than
+          silently dropping it;
+      (c) cache PeeringDB <code>net</code> and <code>netixlan</code> responses
+          on disk so re-runs during the workshop don’t re-fetch.
+    </li>
+    <li>
+      <strong>Stability fetch also failed transiently</strong> on the same
+      run (<em>Could not fetch stability data: Request failed</em>) yet the
+      score still showed 30/30. A missing-data path that yields a maximum
+      score is misleading — better to either short-circuit with a clearly
+      labelled <em>“stability: unknown”</em> tile or to retry with back-off.
+    </li>
+  </ol>
+
+  <h3>🛡 Workshop-reliability improvements (highest ROI for NANOG)</h3>
+  <ol>
+    <li>
+      <strong>Persistent on-disk cache (DuckDB or SQLite).</strong> The
+      design-v2 doc already names this; ship it before the workshop. Even a
+      24-hour TTL cache of <code>RIPEstat as-overview</code>,
+      <code>announced-prefixes</code> and <code>PeeringDB net/netixlan</code>
+      would eliminate ~80% of API calls when 50 attendees all score the
+      same demo ASNs.
+    </li>
+    <li>
+      <strong>Exponential back-off + jitter</strong> on all collector clients
+      (currently httpx without retries). Three retries with 1/2/4s + jitter
+      would absorb almost all transient rate-limits.
+    </li>
+    <li>
+      <strong>Offline / cached-only flag</strong> (<code>--offline</code>).
+      Lets workshop attendees run scoring from a pre-warmed cache when wifi
+      is flaky.
+    </li>
+  </ol>
+
+  <h3>🚀 Feature additions worth considering after NANOG</h3>
+  <ol>
+    <li>
+      <strong>RPKI ROA validation in scoring.</strong> The deck advertises
+      RPKI-invalid rejection (slide 14) and an RPKI column (slide 16), but
+      the security category does <em>not</em> actually check RPKI. Hook
+      RIPEstat <code>rpki-validation</code> (or routinator HTTP API) into
+      the security score so the deck is fully truthful.
+    </li>
+    <li>
+      <strong>Watch / scheduled re-scoring.</strong> Slide 9 explicitly
+      recommends “implement monitoring” for MODERATE peers. A small
+      <code>route-sherlock watch AS&lt;n&gt; --interval 7d --alert-on
+      score-drop&gt;10</code> with a sqlite store would make that
+      recommendation actionable.
+    </li>
+    <li>
+      <strong>Markdown / PDF report export.</strong> Peering coordinators
+      forward decisions over email; <code>--report markdown</code> on
+      <code>peer-risk</code> / <code>safeguards</code> is low-effort and
+      high-value.
+    </li>
+    <li>
+      <strong>Vendor-specific config snippet output</strong> on
+      <code>safeguards</code> (<code>--vendor cisco|junos|bird</code>).
+      Originally proposed and dropped — worth revisiting if the workshop
+      audience asks for copy-pasteable BGP config.
+    </li>
+    <li>
+      <strong>Score-component drill-down command.</strong>
+      <code>peer-risk --explain</code> that dumps every input metric and
+      the exact reason for each point deduction. Today the deductions are
+      summarised but not auditable.
+    </li>
+    <li>
+      <strong>Bulk mode.</strong> <code>route-sherlock peer-risk --batch
+      asns.txt --json</code> for peering coordinators evaluating dozens of
+      candidates.
+    </li>
+  </ol>
+
+  <h3>📝 Deck-vs-tool consistency nits</h3>
+  <ul>
+    <li>
+      Slide 6 says “Network: CLOUDFLARENET | Policy: Open | IXes: 350”.
+      Today’s actual <code>peer-risk AS13335</code> renders a multi-line
+      profile panel — the deck line is a paraphrase. Either trim the panel
+      header to match, or update the slide to show the real profile table.
+    </li>
+    <li>
+      Slide 9 column “Recommendation” for MODERATE says <em>“Acceptable -
+      implement monitoring”</em>; the tool prints <em>“ACCEPTABLE WITH
+      MONITORING”</em>. Trivial, but tighten one to match the other.
+    </li>
+    <li>
+      Slide 14 shows <em>“Max-prefix limit: 15 (they announce 7
+      prefixes)”</em>, which is ~2.14× — inconsistent with slide 16’s
+      MODERATE multiplier of 1.5×. The new <code>safeguards</code> command
+      follows slide 16. Consider rewriting the slide-14 AI box so it
+      doesn’t contradict slide 16.
+    </li>
+  </ul>
+</section>
+
+
+  <footer>
+    Report self-contained. Outputs are <em>raw stdout/stderr</em> from the
+    <code>route-sherlock</code> binary, ANSI-stripped. Live data sources:
+    RIPEstat, PeeringDB.
+  </footer>
+</div>
+</body>
+</html>
