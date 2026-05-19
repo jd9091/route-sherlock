@@ -20,6 +20,7 @@ from rich import box
 from route_sherlock.collectors.ripestat import RIPEstatClient
 from route_sherlock.collectors.peeringdb import PeeringDBClient, PeeringDBNotFoundError
 from route_sherlock.collectors.atlas import AtlasClient
+from route_sherlock.cache.store import Cache, FileCache, OfflineCacheMiss
 
 console = Console()
 
@@ -978,6 +979,8 @@ async def _gather_peer_risk_data(
     my_asn_int: int | None,
     days: int,
     pdb_key: str | None,
+    cache: Cache | None = None,
+    offline: bool = False,
 ) -> dict[str, Any]:
     """Run the full peer-risk data-collection pipeline.
 
@@ -1015,7 +1018,7 @@ async def _gather_peer_risk_data(
         maturity_factors = []
 
         try:
-            async with PeeringDBClient(api_key=pdb_key) as pdb:
+            async with PeeringDBClient(api_key=pdb_key, cache=cache, offline=offline) as pdb:
                 try:
                     network = await pdb.get_network_by_asn(target_asn_int)
                     risk_data["network"] = {
@@ -1099,7 +1102,7 @@ async def _gather_peer_risk_data(
         stability_score = 30  # Start high, deduct for instability
         stability_factors = []
 
-        async with RIPEstatClient() as ripestat:
+        async with RIPEstatClient(cache=cache, offline=offline) as ripestat:
             try:
                 # Get BGP updates
                 updates = await ripestat.get_bgp_updates(
@@ -1153,7 +1156,7 @@ async def _gather_peer_risk_data(
         incident_factors = []
 
         # Check RIPEstat for routing history anomalies
-        async with RIPEstatClient() as ripestat:
+        async with RIPEstatClient(cache=cache, offline=offline) as ripestat:
             try:
                 # Get AS overview for basic info
                 overview = await ripestat.get_as_overview(str(target_asn_int))
@@ -1190,7 +1193,7 @@ async def _gather_peer_risk_data(
 
         # Check RPKI/ROA status
         progress.update(task, description="Checking RPKI status...")
-        async with RIPEstatClient() as ripestat:
+        async with RIPEstatClient(cache=cache, offline=offline) as ripestat:
             try:
                 prefixes = await ripestat.get_announced_prefixes(str(target_asn_int))
 
@@ -1292,7 +1295,13 @@ async def _gather_peer_risk_data(
     return risk_data
 
 
-async def run_peer_risk(target_asn: str, my_asn: str | None, days: int, use_ai: bool = False):
+async def run_peer_risk(
+    target_asn: str,
+    my_asn: str | None,
+    days: int,
+    use_ai: bool = False,
+    offline: bool = False,
+):
     """
     Evaluate peering risk for an ASN.
 
@@ -1306,14 +1315,24 @@ async def run_peer_risk(target_asn: str, my_asn: str | None, days: int, use_ai: 
     target_asn_int = normalize_asn(target_asn)
     my_asn_int = normalize_asn(my_asn) if my_asn else None
     pdb_key = get_peeringdb_key()
+    cache = FileCache()
 
     console.print()
     console.print(Panel(
-        f"[bold]🔒 Peer Risk Assessment: AS{target_asn_int}[/]",
+        f"[bold]🔒 Peer Risk Assessment: AS{target_asn_int}[/]"
+        + ("  [yellow](offline)[/]" if offline else ""),
         box=box.DOUBLE,
     ))
 
-    risk_data = await _gather_peer_risk_data(target_asn_int, my_asn_int, days, pdb_key)
+    try:
+        risk_data = await _gather_peer_risk_data(
+            target_asn_int, my_asn_int, days, pdb_key, cache=cache, offline=offline,
+        )
+    except OfflineCacheMiss as e:
+        console.print()
+        console.print(f"[red]✗ Offline mode: {e}[/]")
+        console.print("[dim]Run once without --offline to populate the cache.[/]")
+        return
 
     risk_level = risk_data["risk_level"]
     recommendation = risk_data["recommendation"]
@@ -1516,7 +1535,7 @@ async def run_peer_risk(target_asn: str, my_asn: str | None, days: int, use_ai: 
 # Safeguards Command
 # ============================================================================
 
-async def run_safeguards(target_asn: str, days: int):
+async def run_safeguards(target_asn: str, days: int, offline: bool = False):
     """
     Generate concrete BGP safeguards for a candidate peer.
 
@@ -1528,14 +1547,24 @@ async def run_safeguards(target_asn: str, days: int):
 
     target_asn_int = normalize_asn(target_asn)
     pdb_key = get_peeringdb_key()
+    cache = FileCache()
 
     console.print()
     console.print(Panel(
-        f"[bold]🛡 Safeguards: AS{target_asn_int}[/]",
+        f"[bold]🛡 Safeguards: AS{target_asn_int}[/]"
+        + ("  [yellow](offline)[/]" if offline else ""),
         box=box.DOUBLE,
     ))
 
-    risk_data = await _gather_peer_risk_data(target_asn_int, None, days, pdb_key)
+    try:
+        risk_data = await _gather_peer_risk_data(
+            target_asn_int, None, days, pdb_key, cache=cache, offline=offline,
+        )
+    except OfflineCacheMiss as e:
+        console.print()
+        console.print(f"[red]✗ Offline mode: {e}[/]")
+        console.print("[dim]Run once without --offline to populate the cache.[/]")
+        return
     sg = compute_safeguards(risk_data)
 
     risk_color = {

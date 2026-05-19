@@ -31,7 +31,7 @@ from route_sherlock.models.peeringdb import (
     Organization,
     PeeringOpportunity,
 )
-from route_sherlock.cache.store import Cache
+from route_sherlock.cache.store import Cache, OfflineCacheMiss
 
 
 class PeeringDBError(Exception):
@@ -82,6 +82,7 @@ class PeeringDBClient:
         cache_ttl: int = 3600,  # 1 hour default
         timeout: float = 30.0,
         max_retries: int = 3,
+        offline: bool = False,
     ):
         """
         Initialize PeeringDB client.
@@ -94,6 +95,9 @@ class PeeringDBClient:
             cache_ttl: Cache time-to-live in seconds
             timeout: Request timeout in seconds
             max_retries: Maximum retry attempts for failed requests
+            offline: If True, only serve from cache; raise
+                ``OfflineCacheMiss`` on cache miss instead of making a
+                network request.
         """
         self.api_key = api_key
         self.username = username
@@ -102,6 +106,7 @@ class PeeringDBClient:
         self.cache_ttl = cache_ttl
         self.timeout = timeout
         self.max_retries = max_retries
+        self.offline = offline
         self._client: httpx.AsyncClient | None = None
 
     async def __aenter__(self) -> "PeeringDBClient":
@@ -158,6 +163,12 @@ class PeeringDBClient:
             cached = await self.cache.get(cache_key)
             if cached is not None:
                 return cached
+
+        if self.offline:
+            raise OfflineCacheMiss(
+                f"offline mode: no cached response for PeeringDB endpoint "
+                f"{endpoint!r} (params={params}). Run online once to populate."
+            )
 
         # Build URL
         url = f"{self.BASE_URL}/{endpoint}"

@@ -134,14 +134,14 @@ footer {
     Validating
     <code>20260107_Dave_Peering_Risk_Intelligence_v2_fmt.pptx</code>
     against the live <code>route-sherlock</code> CLI (jd9091/route-sherlock@<code>main</code>).
-    Generated 2026-05-18 18:36.
+    Generated 2026-05-18 19:24.
   </p>
 
   <div class="summary">
-    <div class="tile pass"><div class="num">14</div><div class="lbl">Passed</div></div>
+    <div class="tile pass"><div class="num">16</div><div class="lbl">Passed</div></div>
     <div class="tile fail"><div class="num">0</div><div class="lbl">Failed</div></div>
-    <div class="tile"><div class="num">14</div><div class="lbl">Total tests</div></div>
-    <div class="tile"><div class="num">1002s</div><div class="lbl">Wall time</div></div>
+    <div class="tile"><div class="num">16</div><div class="lbl">Total tests</div></div>
+    <div class="tile"><div class="num">869s</div><div class="lbl">Wall time</div></div>
   </div>
 
   <h2>Test cases</h2>
@@ -155,7 +155,7 @@ footer {
       
     </div>
     <div class="right">
-      <span class="dur">0.2s</span>
+      <span class="dur">0.3s</span>
       <span class="exit">exit 0</span>
     </div>
   </header>
@@ -194,10 +194,10 @@ footer {
       <span class="badge pass">PASS</span>
       <span class="id">T02</span>
       <span class="slide">slide 6</span>
-      <span class="retried">retried</span>
+      
     </div>
     <div class="right">
-      <span class="dur">159.4s</span>
+      <span class="dur">159.2s</span>
       <span class="exit">exit 0</span>
     </div>
   </header>
@@ -258,7 +258,7 @@ CLOUDFLARENET - Cloudflare, Inc.
 ║ Proceed with standard peering process.                                                                               ║
 ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
-Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:35 UTC</pre>
+Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 02:06 UTC</pre>
   </details>
 </article>
 <article class="card pass">
@@ -270,7 +270,7 @@ Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:35 UTC</pre>
       
     </div>
     <div class="right">
-      <span class="dur">27.9s</span>
+      <span class="dur">29.6s</span>
       <span class="exit">exit 0</span>
     </div>
   </header>
@@ -315,7 +315,7 @@ ELETRONET S.A.
   IXes              24               
   IRR as-set        RADB::AS-267613  
   Prefixes          6                
-  BGP Updates/Day   1817.7           
+  BGP Updates/Day   1818.2           
   Upstreams         559              
   Downstreams       0                
                                      
@@ -334,7 +334,7 @@ ELETRONET S.A.
 ║                                                                                                                      ║
 ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
-Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:14 UTC</pre>
+Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 02:07 UTC</pre>
   </details>
 </article>
 <article class="card pass">
@@ -346,7 +346,7 @@ Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:14 UTC</pre>
       
     </div>
     <div class="right">
-      <span class="dur">11.4s</span>
+      <span class="dur">9.6s</span>
       <span class="exit">exit 0</span>
     </div>
   </header>
@@ -368,8 +368,8 @@ Period: Last 30 days
                         
   Metric        Value   
  ────────────────────── 
-  BGP Updates   51,893  
-  Updates/Day   1729.8  
+  BGP Updates   51,931  
+  Updates/Day   1731.0  
   Prefixes      6       
                         
 
@@ -383,19 +383,19 @@ Score Factors:
       <span class="badge pass">PASS</span>
       <span class="id">T05</span>
       <span class="slide">slide 11</span>
-      
+      <span class="retried">retried</span>
     </div>
     <div class="right">
-      <span class="dur">97.7s</span>
+      <span class="dur">159.6s</span>
       <span class="exit">exit 0</span>
     </div>
   </header>
   <h3>IX overlap — slide 11</h3>
-  <p class="claim"><span class="lbl">Deck claim:</span> peer-risk --my-asn surfaces shared IXes (&#x27;Common IXes&#x27; line).</p>
+  <p class="claim"><span class="lbl">Deck claim:</span> peer-risk --my-asn renders the IX Overlap section — with real data when PeeringDB cooperates, or a clear &#x27;unavailable&#x27; notice when it doesn&#x27;t.</p>
   <p class="cmd"><span class="lbl">Command:</span> <code>route-sherlock peer-risk AS15169 --my-asn AS13335</code></p>
-  <p class="note"><span class="lbl">Verdict:</span> all expected strings present</p>
+  <p class="note"><span class="lbl">Verdict:</span> found &#x27;IX overlap unavailable&#x27;</p>
   <details>
-    <summary>Actual output (55 lines)</summary>
+    <summary>Actual output (57 lines)</summary>
     <pre>
 ╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
 ║ 🔒 Peer Risk Assessment: AS15169                                                                                     ║
@@ -435,9 +435,11 @@ GOOGLE - Google LLC
                                         
 
 ## IX Overlap
-   Common IXes: 152
-   Your IXes: 352 | Target IXes: 179
-   ✓ Can peer at 152 location(s)
+   ⚠ IX overlap unavailable: Rate limit exceeded
+   Re-run when PeeringDB recovers, or set PEERINGDB_API_KEY for higher quota.
+
+## ⚠️ Warnings
+   • IX overlap unavailable: Rate limit exceeded
 
 ╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
 ║ ✅ RECOMMENDED TO PEER                                                                                               ║
@@ -450,7 +452,7 @@ GOOGLE - Google LLC
 ║ Proceed with standard peering process.                                                                               ║
 ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
-Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:16 UTC</pre>
+Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 02:24 UTC</pre>
   </details>
 </article>
 <article class="card pass">
@@ -459,7 +461,7 @@ Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:16 UTC</pre>
       <span class="badge pass">PASS</span>
       <span class="id">T06</span>
       <span class="slide">slide 12,13</span>
-      <span class="retried">retried</span>
+      
     </div>
     <div class="right">
       <span class="dur">0.2s</span>
@@ -493,7 +495,7 @@ pybgpstream</pre>
       
     </div>
     <div class="right">
-      <span class="dur">158.8s</span>
+      <span class="dur">156.1s</span>
       <span class="exit">exit 0</span>
     </div>
   </header>
@@ -557,7 +559,7 @@ Set ANTHROPIC_API_KEY for AI analysis
 ║ Proceed with standard peering process.                                                                               ║
 ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
-Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:19 UTC</pre>
+Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 02:12 UTC</pre>
   </details>
 </article>
 <article class="card pass">
@@ -569,7 +571,7 @@ Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:19 UTC</pre>
       
     </div>
     <div class="right">
-      <span class="dur">159.7s</span>
+      <span class="dur">156.4s</span>
       <span class="exit">exit 0</span>
     </div>
   </header>
@@ -630,7 +632,7 @@ CLOUDFLARENET - Cloudflare, Inc.
 ║ Proceed with standard peering process.                                                                               ║
 ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
-Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:21 UTC</pre>
+Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 02:15 UTC</pre>
   </details>
 </article>
 <article class="card pass">
@@ -642,7 +644,7 @@ Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:21 UTC</pre>
       
     </div>
     <div class="right">
-      <span class="dur">160.9s</span>
+      <span class="dur">95.6s</span>
       <span class="exit">exit 0</span>
     </div>
   </header>
@@ -651,32 +653,29 @@ Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:21 UTC</pre>
   <p class="cmd"><span class="lbl">Command:</span> <code>route-sherlock safeguards AS13335</code></p>
   <p class="note"><span class="lbl">Verdict:</span> all expected strings present</p>
   <details>
-    <summary>Actual output (25 lines)</summary>
+    <summary>Actual output (22 lines)</summary>
     <pre>
 ╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
 ║ 🛡 Safeguards: AS13335                                                                                                ║
 ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
 
-CLOUDFLARENET - Cloudflare, Inc.  LOW  (85/100)
+CLOUDFLARENET - Cloudflare, Inc.  LOW  (100/100)
 
 ╭───────────────────────┬────────────────────────────────────────╮
-│ maximum-prefix (IPv4) │ unknown  (announced count unavailable) │
-│ IRR filter target     │ none registered  (standard)            │
+│ maximum-prefix (IPv4) │ 160000  (2× announced (80000))         │
+│ IRR filter target     │ AS13335:AS-CLOUDFLARE  (standard)      │
 │ RPKI policy           │ warn-invalid                           │
 │ Monitoring            │ standard                               │
 │ Recommendation        │ Recommended — standard peering process │
 ╰───────────────────────┴────────────────────────────────────────╯
 
 ## Why
-   • Score 85/100 (LOW) — apply LOW-tier safeguards.
+   • Score 100/100 (LOW) — apply LOW-tier safeguards.
+   • Cap maximum-prefix at 160000 (2× announced (80000)).
    • Apply standard IRR filtering; warn-invalid.
 
-## ⚠ Verify
-   • Announced-prefix count unavailable — verify via the peer&#x27;s BGP advertisements before setting maximum-prefix.
-   • No IRR as-set registered in PeeringDB — request one from the peer, or use an explicit prefix-list per RFC 7948.
-
-Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:24 UTC</pre>
+Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 02:17 UTC</pre>
   </details>
 </article>
 <article class="card pass">
@@ -688,7 +687,7 @@ Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:24 UTC</pre>
       
     </div>
     <div class="right">
-      <span class="dur">29.7s</span>
+      <span class="dur">27.0s</span>
       <span class="exit">exit 0</span>
     </div>
   </header>
@@ -719,7 +718,7 @@ ELETRONET S.A.  MODERATE  (72/100)
    • Cap maximum-prefix at 9 (1.5× announced (6)).
    • Apply strict IRR filtering; reject-invalid.
 
-Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:25 UTC</pre>
+Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 02:17 UTC</pre>
   </details>
 </article>
 <article class="card pass">
@@ -731,7 +730,7 @@ Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:25 UTC</pre>
       
     </div>
     <div class="right">
-      <span class="dur">64.3s</span>
+      <span class="dur">4.4s</span>
       <span class="exit">exit 0</span>
     </div>
   </header>
@@ -740,7 +739,7 @@ Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:25 UTC</pre>
   <p class="cmd"><span class="lbl">Command:</span> <code>route-sherlock lookup AS13335</code></p>
   <p class="note"><span class="lbl">Verdict:</span> found &#x27;Cloudflare&#x27;</p>
   <details>
-    <summary>Actual output (12 lines)</summary>
+    <summary>Actual output (20 lines)</summary>
     <pre>
 ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ AS13335 - CLOUDFLARENET - Cloudflare, Inc.                                                                           │
@@ -752,7 +751,15 @@ Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:25 UTC</pre>
   IPv6 Prefixes   3049                      
   Upstreams       2499                      
   Downstreams     0                         
-  Top Upstreams   AS10030, AS10094, AS1031</pre>
+  Top Upstreams   AS10030, AS10094, AS1031  
+                                            
+
+PeeringDB:
+                                      
+  Type         Content                
+  Policy       Open                   
+  IXes         352                    
+  IRR as-set   AS13335:AS-CLOUDFLARE</pre>
   </details>
 </article>
 <article class="card pass">
@@ -764,7 +771,7 @@ Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:25 UTC</pre>
       
     </div>
     <div class="right">
-      <span class="dur">69.5s</span>
+      <span class="dur">65.2s</span>
       <span class="exit">exit 0</span>
     </div>
   </header>
@@ -787,8 +794,8 @@ Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:25 UTC</pre>
 │ IPv4 Prefixes  │                            2,517 │               1,208 │ AS13335 │
 │ IPv6 Prefixes  │                            3,049 │                 175 │ AS13335 │
 │ Upstreams      │                             2499 │                 332 │ AS13335 │
-│ IXes           │                                0 │                   0 │   Tie   │
-│ Peering Policy │                                ? │                   ? │         │
+│ IXes           │                                0 │                 179 │ AS15169 │
+│ Peering Policy │                                ? │           Selective │         │
 ╰────────────────┴──────────────────────────────────┴─────────────────────┴─────────╯</pre>
   </details>
 </article>
@@ -801,7 +808,7 @@ Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:25 UTC</pre>
       
     </div>
     <div class="right">
-      <span class="dur">62.4s</span>
+      <span class="dur">4.7s</span>
       <span class="exit">exit 1</span>
     </div>
   </header>
@@ -841,8 +848,8 @@ Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:25 UTC</pre>
 │                                                                                                                      │
 │ ╭────────────────────────── locals ──────────────────────────╮                                                       │
 │ │  debug = None                                              │                                                       │
-│ │   main = &lt;coroutine object run_ix_presence at 0x108f1d940&gt; │                                                       │
-│ │ runner = &lt;asyncio.runners.Runner object at 0x108f57950&gt;    │                                                       │
+│ │   main = &lt;coroutine object run_ix_presence at 0x107089df0&gt; │                                                       │
+│ │ runner = &lt;asyncio.runners.Runner object at 0x1070c5590&gt;    │                                                       │
 │ ╰────────────────────────────────────────────────────────────╯                                                       │
 │                                                                                                                      │
 │ /opt/homebrew/Cellar/python@3.11/3.11.14_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/runners. │
@@ -857,15 +864,15 @@ Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:25 UTC</pre>
 │   121 │   │   │   │   uncancel = getattr(task, &quot;uncancel&quot;, None)                                                     │
 │                                                                                                                      │
 │ ╭───────────────────────────────────────────────────── locals ─────────────────────────────────────────────────────╮ │
-│ │        context = &lt;_contextvars.Context object at 0x108f6b080&gt;                                                    │ │
-│ │           coro = &lt;coroutine object run_ix_presence at 0x108f1d940&gt;                                               │ │
-│ │           self = &lt;asyncio.runners.Runner object at 0x108f57950&gt;                                                  │ │
+│ │        context = &lt;_contextvars.Context object at 0x1070ec100&gt;                                                    │ │
+│ │           coro = &lt;coroutine object run_ix_presence at 0x107089df0&gt;                                               │ │
+│ │           self = &lt;asyncio.runners.Runner object at 0x1070c5590&gt;                                                  │ │
 │ │ sigint_handler = functools.partial(&lt;bound method Runner._on_sigint of &lt;asyncio.runners.Runner object at          │ │
-│ │                  0x108f57950&gt;&gt;, main_task=&lt;Task finished name=&#x27;Task-1&#x27; coro=&lt;run_ix_presence() done, defined at  │ │
-│ │                  /Users/jd/Documents/route-sherlock/src/route_sherlock/cli/commands.py:633&gt;                      │ │
+│ │                  0x1070c5590&gt;&gt;, main_task=&lt;Task finished name=&#x27;Task-1&#x27; coro=&lt;run_ix_presence() done, defined at  │ │
+│ │                  /Users/jd/Documents/route-sherlock/src/route_sherlock/cli/commands.py:634&gt;                      │ │
 │ │                  exception=PeeringDBRateLimitError(&#x27;Rate limit exceeded&#x27;)&gt;)                                      │ │
 │ │           task = &lt;Task finished name=&#x27;Task-1&#x27; coro=&lt;run_ix_presence() done, defined at                           │ │
-│ │                  /Users/jd/Documents/route-sherlock/src/route_sherlock/cli/commands.py:633&gt;                      │ │
+│ │                  /Users/jd/Documents/route-sherlock/src/route_sherlock/cli/commands.py:634&gt;                      │ │
 │ │                  exception=PeeringDBRateLimitError(&#x27;Rate limit exceeded&#x27;)&gt;                                       │ │
 │ ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ │
 │                                                                                                                      │
@@ -882,21 +889,21 @@ Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:25 UTC</pre>
 │                                                                                                                      │
 │ ╭───────────────────────────────────────────────────── locals ─────────────────────────────────────────────────────╮ │
 │ │   future = &lt;Task finished name=&#x27;Task-1&#x27; coro=&lt;run_ix_presence() done, defined at                                 │ │
-│ │            /Users/jd/Documents/route-sherlock/src/route_sherlock/cli/commands.py:633&gt;                            │ │
+│ │            /Users/jd/Documents/route-sherlock/src/route_sherlock/cli/commands.py:634&gt;                            │ │
 │ │            exception=PeeringDBRateLimitError(&#x27;Rate limit exceeded&#x27;)&gt;                                             │ │
 │ │ new_task = False                                                                                                 │ │
 │ │     self = &lt;_UnixSelectorEventLoop running=False closed=True debug=False&gt;                                        │ │
 │ ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ │
 │                                                                                                                      │
-│ /Users/jd/Documents/route-sherlock/src/route_sherlock/cli/commands.py:658 in run_ix_presence                         │
+│ /Users/jd/Documents/route-sherlock/src/route_sherlock/cli/commands.py:659 in run_ix_presence                         │
 │                                                                                                                      │
-│    655 │   │   │   │   console.print(&quot;[red]ASN not found in PeeringDB[/]&quot;)                                           │
-│    656 │   │   │   │   return                                                                                        │
-│    657 │   │   │                                                                                                     │
-│ ❱  658 │   │   │   ixlans = await pdb.get_network_ixlans(asn_int)                                                    │
-│    659 │   │   │                                                                                                     │
-│    660 │   │   │   # Group by IX                                                                                     │
-│    661 │   │   │   ix_map: dict[int, list] = {}                                                                      │
+│    656 │   │   │   │   console.print(&quot;[red]ASN not found in PeeringDB[/]&quot;)                                           │
+│    657 │   │   │   │   return                                                                                        │
+│    658 │   │   │                                                                                                     │
+│ ❱  659 │   │   │   ixlans = await pdb.get_network_ixlans(asn_int)                                                    │
+│    660 │   │   │                                                                                                     │
+│    661 │   │   │   # Group by IX                                                                                     │
+│    662 │   │   │   ix_map: dict[int, list] = {}                                                                      │
 │                                                                                                                      │
 │ ╭─────────────────────────────────────────────────── locals ───────────────────────────────────────────────────╮     │
 │ │      asn = &#x27;AS13335&#x27;                                                                                         │     │
@@ -934,36 +941,36 @@ Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:25 UTC</pre>
 │ │            │   updated=datetime.datetime(2026, 4, 29, 17, 0, 30, tzinfo=TzInfo(0)),                          │     │
 │ │            │   status=&#x27;ok&#x27;                                                                                   │     │
 │ │            )                                                                                                 │     │
-│ │      pdb = &lt;route_sherlock.collectors.peeringdb.PeeringDBClient object at 0x10901b9d0&gt;                       │     │
+│ │      pdb = &lt;route_sherlock.collectors.peeringdb.PeeringDBClient object at 0x10718d090&gt;                       │     │
 │ │  pdb_key = None                                                                                              │     │
-│ │ progress = &lt;rich.progress.Progress object at 0x108ff7890&gt;                                                    │     │
+│ │ progress = &lt;rich.progress.Progress object at 0x107168850&gt;                                                    │     │
 │ │     task = 0                                                                                                 │     │
 │ ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────╯     │
 │                                                                                                                      │
-│ /Users/jd/Documents/route-sherlock/src/route_sherlock/collectors/peeringdb.py:320 in get_network_ixlans              │
+│ /Users/jd/Documents/route-sherlock/src/route_sherlock/collectors/peeringdb.py:331 in get_network_ixlans              │
 │                                                                                                                      │
-│   317 │   │   Returns:                                                                                               │
-│   318 │   │   │   List of IX connections                                                                             │
-│   319 │   │   &quot;&quot;&quot;                                                                                                    │
-│ ❱ 320 │   │   data = await self._request(&quot;netixlan&quot;, {&quot;asn&quot;: asn})                                                   │
-│   321 │   │   return [NetworkIXLan(**n) for n in self._extract_data(data)]                                           │
-│   322 │                                                                                                              │
-│   323 │   async def get_network_facilities(self, asn: int) -&gt; list[NetworkFacility]:                                 │
+│   328 │   │   Returns:                                                                                               │
+│   329 │   │   │   List of IX connections                                                                             │
+│   330 │   │   &quot;&quot;&quot;                                                                                                    │
+│ ❱ 331 │   │   data = await self._request(&quot;netixlan&quot;, {&quot;asn&quot;: asn})                                                   │
+│   332 │   │   return [NetworkIXLan(**n) for n in self._extract_data(data)]                                           │
+│   333 │                                                                                                              │
+│   334 │   async def get_network_facilities(self, asn: int) -&gt; list[NetworkFacility]:                                 │
 │                                                                                                                      │
 │ ╭────────────────────────────────────── locals ──────────────────────────────────────╮                               │
 │ │  asn = 13335                                                                       │                               │
-│ │ self = &lt;route_sherlock.collectors.peeringdb.PeeringDBClient object at 0x10901b9d0&gt; │                               │
+│ │ self = &lt;route_sherlock.collectors.peeringdb.PeeringDBClient object at 0x10718d090&gt; │                               │
 │ ╰────────────────────────────────────────────────────────────────────────────────────╯                               │
 │                                                                                                                      │
-│ /Users/jd/Documents/route-sherlock/src/route_sherlock/collectors/peeringdb.py:185 in _request                        │
+│ /Users/jd/Documents/route-sherlock/src/route_sherlock/collectors/peeringdb.py:196 in _request                        │
 │                                                                                                                      │
-│   182 │   │   │   │   │   │   │   self._retry_delay(attempt, response.headers.get(&quot;Retry-After                       │
-│   183 │   │   │   │   │   │   )                                                                                      │
-│   184 │   │   │   │   │   │   continue                                                                               │
-│ ❱ 185 │   │   │   │   │   raise last_error                                                                           │
-│   186 │   │   │   │                                                                                                  │
-│   187 │   │   │   │   response.raise_for_status()                                                                    │
-│   188 │   │   │   │   data = response.json()                                                                         │
+│   193 │   │   │   │   │   │   │   self._retry_delay(attempt, response.headers.get(&quot;Retry-After                       │
+│   194 │   │   │   │   │   │   )                                                                                      │
+│   195 │   │   │   │   │   │   continue                                                                               │
+│ ❱ 196 │   │   │   │   │   raise last_error                                                                           │
+│   197 │   │   │   │                                                                                                  │
+│   198 │   │   │   │   response.raise_for_status()                                                                    │
+│   199 │   │   │   │   data = response.json()                                                                         │
 │                                                                                                                      │
 │ ╭───────────────────────────────────────── locals ─────────────────────────────────────────╮                         │
 │ │    attempt = 2                                                                           │                         │
@@ -972,7 +979,7 @@ Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 01:25 UTC</pre>
 │ │ last_error = PeeringDBRateLimitError(&#x27;Rate limit exceeded&#x27;)                              │                         │
 │ │     params = {&#x27;asn&#x27;: 13335}                                                              │                         │
 │ │   response = &lt;Response [429 Too Many Requests]&gt;                                          │                         │
-│ │       self = &lt;route_sherlock.collectors.peeringdb.PeeringDBClient object at 0x10901b9d0&gt; │                         │
+│ │       self = &lt;route_sherlock.collectors.peeringdb.PeeringDBClient object at 0x10718d090&gt; │                         │
 │ │        url = &#x27;https://www.peeringdb.com/api/netixlan&#x27;                                    │                         │
 │ │  use_cache = True                                                                        │                         │
 │ ╰──────────────────────────────────────────────────────────────────────────────────────────╯                         │
@@ -989,7 +996,7 @@ PeeringDBRateLimitError: Rate limit exceeded</pre>
       
     </div>
     <div class="right">
-      <span class="dur">0.4s</span>
+      <span class="dur">0.3s</span>
       <span class="exit">exit 0</span>
     </div>
   </header>
@@ -999,7 +1006,7 @@ PeeringDBRateLimitError: Rate limit exceeded</pre>
   <p class="note"><span class="lbl">Verdict:</span> found &#x27;passed&#x27;</p>
   <details>
     <summary>Actual output (36 lines)</summary>
-    <pre>...............                                                                                                  [100%]
+    <pre>...............................                                                                                  [100%]
 =================================================== warnings summary ===================================================
 src/route_sherlock/models/atlas.py:64
   /Users/jd/Documents/route-sherlock/src/route_sherlock/models/atlas.py:64: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
@@ -1034,7 +1041,96 @@ src/route_sherlock/models/atlas.py:277
     class SslResult(BaseModel):
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-15 passed, 8 warnings in 0.13s</pre>
+31 passed, 8 warnings in 0.13s</pre>
+  </details>
+</article>
+<article class="card pass">
+  <header>
+    <div class="left">
+      <span class="badge pass">PASS</span>
+      <span class="id">T15</span>
+      <span class="slide">slide (new)</span>
+      <span class="retried">retried</span>
+    </div>
+    <div class="right">
+      <span class="dur">0.5s</span>
+      <span class="exit">exit 0</span>
+    </div>
+  </header>
+  <h3>Offline mode serves a previously-cached ASN</h3>
+  <p class="claim"><span class="lbl">Deck claim:</span> After an online run, `safeguards AS267613 --offline` returns same output without network.</p>
+  <p class="cmd"><span class="lbl">Command:</span> <code>route-sherlock safeguards AS267613 --days 30 --offline</code></p>
+  <p class="note"><span class="lbl">Verdict:</span> all expected strings present</p>
+  <details>
+    <summary>Actual output (22 lines)</summary>
+    <pre>
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ 🛡 Safeguards: AS267613  (offline)                                                                                    ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+ELETRONET S.A.  MODERATE  (72/100)
+
+╭───────────────────────┬───────────────────────────────────╮
+│ maximum-prefix (IPv4) │ 9  (1.5× announced (6))           │
+│ IRR filter target     │ RADB::AS-267613  (strict)         │
+│ RPKI policy           │ reject-invalid                    │
+│ Monitoring            │ recommended                       │
+│ Recommendation        │ Acceptable — implement monitoring │
+╰───────────────────────┴───────────────────────────────────╯
+
+## Why
+   • Score 72/100 (MODERATE) — apply MODERATE-tier safeguards.
+   • Cap maximum-prefix at 9 (1.5× announced (6)).
+   • Apply strict IRR filtering; reject-invalid.
+
+Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 02:24 UTC</pre>
+  </details>
+</article>
+<article class="card pass">
+  <header>
+    <div class="left">
+      <span class="badge pass">PASS</span>
+      <span class="id">T16</span>
+      <span class="slide">slide (new)</span>
+      <span class="retried">retried</span>
+    </div>
+    <div class="right">
+      <span class="dur">0.2s</span>
+      <span class="exit">exit 0</span>
+    </div>
+  </header>
+  <h3>Offline mode degrades gracefully on cache miss</h3>
+  <p class="claim"><span class="lbl">Deck claim:</span> `safeguards &lt;uncached-ASN&gt; --offline` runs and reports unavailable fields.</p>
+  <p class="cmd"><span class="lbl">Command:</span> <code>route-sherlock safeguards AS65000 --days 30 --offline</code></p>
+  <p class="note"><span class="lbl">Verdict:</span> found &#x27;Announced-prefix count unavailable&#x27;</p>
+  <details>
+    <summary>Actual output (25 lines)</summary>
+    <pre>
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ 🛡 Safeguards: AS65000  (offline)                                                                                     ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+AS65000  MODERATE  (70/100)
+
+╭───────────────────────┬────────────────────────────────────────╮
+│ maximum-prefix (IPv4) │ unknown  (announced count unavailable) │
+│ IRR filter target     │ none registered  (strict)              │
+│ RPKI policy           │ reject-invalid                         │
+│ Monitoring            │ recommended                            │
+│ Recommendation        │ Acceptable — implement monitoring      │
+╰───────────────────────┴────────────────────────────────────────╯
+
+## Why
+   • Score 70/100 (MODERATE) — apply MODERATE-tier safeguards.
+   • Apply strict IRR filtering; reject-invalid.
+
+## ⚠ Verify
+   • Announced-prefix count unavailable — verify via the peer&#x27;s BGP advertisements before setting maximum-prefix.
+   • No IRR as-set registered in PeeringDB — request one from the peer, or use an explicit prefix-list per RFC 7948.
+
+Data sources: RIPEstat, PeeringDB | Analysis: 2026-05-19 02:24 UTC</pre>
   </details>
 </article>
 
@@ -1042,25 +1138,40 @@ src/route_sherlock/models/atlas.py:277
 <section class="findings">
   <h2>Findings &amp; Improvement Ideas</h2>
 
-  <h3>✅ Bugs fixed in this validation cycle</h3>
+  <h3>✅ Improvements shipped since last validation</h3>
   <ol>
     <li>
-      <strong>IX-overlap silently disappears when PeeringDB rate-limits.</strong>
-      <em>(Fixed in PR #2, commit d8cfdb0.)</em>
-      In <code>peer-risk AS15169 --my-asn AS13335</code> (slide-11 demo), PeeringDB
-      returned <em>Rate limit exceeded</em> on the very first call. The tool
-      logged a single warning and continued, but the entire <code>## IX Overlap</code>
-      section was conditional on the lookup succeeding — so passing
-      <code>--my-asn</code> silently produced no overlap information.
+      <strong>PeeringDB 429 retry/backoff.</strong> Fixed silent IX-overlap
+      failure (PR #2). 429s retry with exponential backoff + jitter, honoring
+      <code>Retry-After</code>. The <code>## IX Overlap</code> section always
+      renders when <code>--my-asn</code> is supplied — success or "unavailable" — and never silently disappears.
+    </li>
+    <li>
+      <strong>RIPEstat retry/backoff parity.</strong> Same retry pattern
+      applied to <code>RIPEstatClient._request</code>. Previously the
+      <code>RIPEstatRateLimitError</code> raise sat inside the try block
+      where the except clauses only caught httpx exceptions — so 429s
+      never retried.
+    </li>
+    <li>
+      <strong>Persistent file-backed cache (no DB).</strong> New
+      <code>FileCache</code> stores per-key JSON files under
+      <code>~/.cache/route-sherlock/</code> (honors <code>XDG_CACHE_HOME</code>).
+      Zero dependencies, human-readable, clearable with <code>rm -rf</code>.
+      Atomic writes (write-to-temp + rename) survive crashes mid-write.
+    </li>
+    <li>
+      <strong><code>--offline</code> flag</strong> on <code>peer-risk</code>
+      and <code>safeguards</code>. Reuses on-disk cache; on cache miss
+      raises <code>OfflineCacheMiss</code> which the CLI converts into a
+      clear "run once without --offline to populate" message. Time-windowed
+      RIPEstat queries (<code>bgp-updates</code>, <code>routing-history</code>)
+      snap their timestamps to the hour so cache keys are stable across
+      runs — without this, offline re-runs returned wrong scores because
+      the churn-detection data was always a cache miss.
       <br>
-      <em>Fix:</em> 429s now retry with exponential backoff + jitter
-      (honors <code>Retry-After</code>); the IX-overlap query is wrapped in
-      its own try/except; and the <code>## IX Overlap</code> section always
-      renders when <code>--my-asn</code> is supplied — with a clear
-      <em>"IX overlap unavailable: &lt;reason&gt;"</em> message on failure.
-      <br>
-      <em>Verified:</em> T05 now PASS — Common IXes: 152, Your IXes: 352,
-      Target IXes: 179.
+      <em>Verified:</em> online run 14.0s → offline re-run 0.49s, identical
+      MODERATE 72/100 result for AS267613 (T15 PASS).
     </li>
   </ol>
 

@@ -168,6 +168,11 @@ def peer_risk(
     my_asn: Optional[str] = typer.Option(None, "--my-asn", "-m", help="Your ASN (for IX overlap analysis)"),
     days: int = typer.Option(90, "--days", "-d", help="Days of history to analyze"),
     ai: bool = typer.Option(False, "--ai", help="Use Claude AI for risk assessment"),
+    offline: bool = typer.Option(
+        False, "--offline", "-o",
+        help="Serve only from the on-disk cache (~/.cache/route-sherlock). "
+             "Useful when wifi is flaky or upstream APIs are unavailable.",
+    ),
 ):
     """
     Evaluate peering risk for an ASN - should you peer with them?
@@ -179,15 +184,20 @@ def peer_risk(
         route-sherlock peer-risk AS64500
         route-sherlock peer-risk AS64500 --my-asn AS13335
         route-sherlock peer-risk AS64500 --days 180 --ai
+        route-sherlock peer-risk AS64500 --offline
     """
     from route_sherlock.cli.commands import run_peer_risk
-    asyncio.run(run_peer_risk(target, my_asn, days, use_ai=ai))
+    asyncio.run(run_peer_risk(target, my_asn, days, use_ai=ai, offline=offline))
 
 
 @app.command()
 def safeguards(
     target: str = typer.Argument(..., help="Target ASN to evaluate (e.g., AS64500)"),
     days: int = typer.Option(90, "--days", "-d", help="Days of history to analyze"),
+    offline: bool = typer.Option(
+        False, "--offline", "-o",
+        help="Serve only from the on-disk cache (~/.cache/route-sherlock).",
+    ),
 ):
     """
     Generate concrete BGP safeguards for a candidate peer.
@@ -198,9 +208,10 @@ def safeguards(
     Examples:
         route-sherlock safeguards AS267613
         route-sherlock safeguards AS13335 --days 180
+        route-sherlock safeguards AS267613 --offline
     """
     from route_sherlock.cli.commands import run_safeguards
-    asyncio.run(run_safeguards(target, days))
+    asyncio.run(run_safeguards(target, days, offline=offline))
 
 
 def main():
