@@ -12,6 +12,7 @@ Usage:
 from __future__ import annotations
 
 import asyncio
+import random
 from datetime import datetime, timedelta
 from typing import Any
 from urllib.parse import urlencode
@@ -30,7 +31,7 @@ from route_sherlock.models.ripestat import (
     RoutingStatus,
     RPKIValidation,
 )
-from route_sherlock.cache.store import Cache
+from route_sherlock.cache.store import Cache, OfflineCacheMiss
 
 
 class RIPEstatError(Exception):
@@ -70,20 +71,25 @@ class RIPEstatClient:
         cache_ttl: int = 3600,  # 1 hour default
         timeout: float = 30.0,
         max_retries: int = 3,
+        offline: bool = False,
     ):
         """
         Initialize RIPEstat client.
-        
+
         Args:
             cache: Optional cache instance for response caching
             cache_ttl: Cache time-to-live in seconds
             timeout: Request timeout in seconds
             max_retries: Maximum retry attempts for failed requests
+            offline: If True, only serve from cache; raise
+                ``OfflineCacheMiss`` on cache miss instead of making a
+                network request.
         """
         self.cache = cache
         self.cache_ttl = cache_ttl
         self.timeout = timeout
         self.max_retries = max_retries
+        self.offline = offline
         self._client: httpx.AsyncClient | None = None
     
     async def __aenter__(self) -> "RIPEstatClient":
@@ -129,44 +135,71 @@ class RIPEstatClient:
             cached = await self.cache.get(cache_key)
             if cached is not None:
                 return cached
-        
+
+        if self.offline:
+            raise OfflineCacheMiss(
+                f"offline mode: no cached response for RIPEstat endpoint "
+                f"{endpoint!r} (params={params}). Run online once to populate."
+            )
+
         # Build URL
         url = f"{self.BASE_URL}/{endpoint}/data.json"
-        
-        # Make request with retries
+
+        # Make request with retries. 429s now retry with exponential backoff +
+        # jitter (honors Retry-After when present) instead of propagating
+        # immediately — previously the raise sat inside the try block but the
+        # except clauses only caught httpx exceptions, so 429s skipped retry.
         last_error: Exception | None = None
         for attempt in range(self.max_retries):
             try:
                 response = await self._client.get(url, params=params)
-                
+
                 if response.status_code == 429:
-                    raise RIPEstatRateLimitError("Rate limit exceeded")
-                
+                    last_error = RIPEstatRateLimitError("Rate limit exceeded")
+                    if attempt < self.max_retries - 1:
+                        await asyncio.sleep(
+                            self._retry_delay(attempt, response.headers.get("Retry-After"))
+                        )
+                        continue
+                    raise last_error
+
                 response.raise_for_status()
                 data = response.json()
-                
+
                 # Validate response
                 wrapped = RIPEstatResponse(**data)
                 if not wrapped.is_success:
                     raise RIPEstatError(f"API error: {wrapped.data_call_status}")
-                
+
                 # Cache successful response
                 if self.cache:
                     await self.cache.set(cache_key, wrapped.data, ttl=self.cache_ttl)
-                
+
                 return wrapped.data
-                
+
             except httpx.HTTPStatusError as e:
                 last_error = e
                 if attempt < self.max_retries - 1:
-                    await asyncio.sleep(2 ** attempt)  # Exponential backoff
-                    
+                    await asyncio.sleep(self._retry_delay(attempt))
+
             except httpx.RequestError as e:
                 last_error = e
                 if attempt < self.max_retries - 1:
-                    await asyncio.sleep(2 ** attempt)
-        
+                    await asyncio.sleep(self._retry_delay(attempt))
+
         raise RIPEstatError(f"Request failed after {self.max_retries} attempts: {last_error}")
+
+    @staticmethod
+    def _retry_delay(attempt: int, retry_after: str | None = None) -> float:
+        """Compute retry delay in seconds. Mirrors PeeringDBClient._retry_delay."""
+        if retry_after is not None:
+            try:
+                base = float(retry_after)
+            except ValueError:
+                base = 2 ** attempt
+        else:
+            base = 2 ** attempt
+        return min(base, 30.0) + random.uniform(0, 0.5)
     
     @staticmethod
     def _format_time(dt: datetime) -> str:
@@ -236,18 +269,22 @@ class RIPEstatClient:
             RoutingHistory with timeline of announcements
         """
         resource = self._normalize_resource(resource)
-        
+
         if end_time is None:
             end_time = datetime.utcnow()
         if start_time is None:
             start_time = end_time - timedelta(days=7)
-        
+
+        # Snap to start of hour for stable cache keys (see get_bgp_updates).
+        end_time = end_time.replace(minute=0, second=0, microsecond=0)
+        start_time = start_time.replace(minute=0, second=0, microsecond=0)
+
         params = {
             "resource": resource,
             "starttime": self._format_time(start_time),
             "endtime": self._format_time(end_time),
         }
-        
+
         data = await self._request("routing-history", params)
         return RoutingHistory(**data)
     
@@ -273,12 +310,19 @@ class RIPEstatClient:
             BGPUpdates with list of update events
         """
         resource = self._normalize_resource(resource)
-        
+
         if end_time is None:
             end_time = datetime.utcnow()
         if start_time is None:
             start_time = end_time - timedelta(hours=1)
-        
+
+        # Snap to the start of the hour so consecutive runs of the same logical
+        # query produce the same cache key. Without this, the minute component
+        # in starttime/endtime would drift on every call and the on-disk cache
+        # would never hit for time-windowed queries.
+        end_time = end_time.replace(minute=0, second=0, microsecond=0)
+        start_time = start_time.replace(minute=0, second=0, microsecond=0)
+
         params = {
             "resource": resource,
             "starttime": self._format_time(start_time),
@@ -286,7 +330,7 @@ class RIPEstatClient:
         }
         if rrcs:
             params["rrcs"] = ",".join(rrcs)
-        
+
         data = await self._request("bgp-updates", params)
         return BGPUpdates(**data)
     
