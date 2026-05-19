@@ -1061,17 +1061,26 @@ async def _gather_peer_risk_data(
                     else:
                         risk_data["warnings"].append("No IX presence - may indicate limited reach")
 
-                    # If we have our ASN, check IX overlap
+                    # If we have our ASN, check IX overlap. Wrap in its own
+                    # try/except so a PeeringDB rate-limit on the second call
+                    # doesn't silently drop the entire overlap feature — the
+                    # whole reason --my-asn exists is the overlap result.
                     if my_asn_int:
-                        my_ixlans = await pdb.get_network_ixlans(my_asn_int)
-                        my_ix_ids = set(c.ix_id for c in my_ixlans)
-                        target_ix_ids = set(c.ix_id for c in ixlans)
-                        common_ix_ids = my_ix_ids & target_ix_ids
-                        risk_data["ix_overlap"] = {
-                            "common_count": len(common_ix_ids),
-                            "your_ix_count": len(my_ix_ids),
-                            "target_ix_count": len(target_ix_ids),
-                        }
+                        try:
+                            my_ixlans = await pdb.get_network_ixlans(my_asn_int)
+                            my_ix_ids = set(c.ix_id for c in my_ixlans)
+                            target_ix_ids = set(c.ix_id for c in ixlans)
+                            common_ix_ids = my_ix_ids & target_ix_ids
+                            risk_data["ix_overlap"] = {
+                                "common_count": len(common_ix_ids),
+                                "your_ix_count": len(my_ix_ids),
+                                "target_ix_count": len(target_ix_ids),
+                            }
+                        except Exception as e:
+                            risk_data["ix_overlap"] = {"error": str(e)}
+                            risk_data["warnings"].append(
+                                f"IX overlap unavailable: {e}"
+                            )
 
                 except PeeringDBNotFoundError:
                     risk_data["warnings"].append("Not in PeeringDB - cannot verify network details")
@@ -1395,18 +1404,26 @@ async def run_peer_risk(target_asn: str, my_asn: str | None, days: int, use_ai: 
 
     console.print(profile_table)
 
-    # IX overlap (if we have our ASN)
-    if "ix_overlap" in risk_data:
+    # IX overlap — always shown when --my-asn was supplied so the user gets a
+    # clear signal even when the upstream lookup failed.
+    if my_asn_int is not None:
         console.print()
         console.print("[bold cyan]## IX Overlap[/]")
-        overlap = risk_data["ix_overlap"]
-        console.print(f"   Common IXes: [bold]{overlap['common_count']}[/]")
-        console.print(f"   Your IXes: {overlap['your_ix_count']} | Target IXes: {overlap['target_ix_count']}")
-
-        if overlap["common_count"] > 0:
-            console.print(f"   [green]✓ Can peer at {overlap['common_count']} location(s)[/]")
+        overlap = risk_data.get("ix_overlap")
+        if overlap and "error" not in overlap:
+            console.print(f"   Common IXes: [bold]{overlap['common_count']}[/]")
+            console.print(
+                f"   Your IXes: {overlap['your_ix_count']} | "
+                f"Target IXes: {overlap['target_ix_count']}"
+            )
+            if overlap["common_count"] > 0:
+                console.print(f"   [green]✓ Can peer at {overlap['common_count']} location(s)[/]")
+            else:
+                console.print("   [yellow]⚠ No common IXes - would need PNI or new IX membership[/]")
         else:
-            console.print(f"   [yellow]⚠ No common IXes - would need PNI or new IX membership[/]")
+            err = (overlap or {}).get("error", "PeeringDB lookup did not complete")
+            console.print(f"   [yellow]⚠ IX overlap unavailable:[/] {err}")
+            console.print("   [dim]Re-run when PeeringDB recovers, or set PEERINGDB_API_KEY for higher quota.[/]")
 
     # Warnings
     if risk_data["warnings"]:
