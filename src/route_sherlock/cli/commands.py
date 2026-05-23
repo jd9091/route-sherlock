@@ -1142,38 +1142,62 @@ async def _gather_peer_risk_data(
     with step(f"RIPEstat: fetching {days}-day BGP update history", quiet=quiet):
         async with RIPEstatClient(cache=cache, offline=offline, cache_ttl=cache_ttl) as ripestat:
             try:
+                # Pull both updates and announced-prefix count up front so
+                # we can normalise. Absolute updates/day is a size-confused
+                # signal: a Tier-1 with 10,000 prefixes legitimately exceeds
+                # 100/day on best-path churn alone, while a 6-prefix stub
+                # at 50/day is actually flapping hard.
                 updates = await ripestat.get_bgp_updates(
                     str(target_asn_int),
                     start_time=start_time,
                     end_time=end_time,
                 )
+                prefixes = await ripestat.get_announced_prefixes(str(target_asn_int))
+
                 update_count = len(updates.updates)
                 updates_per_day = update_count / max(days, 1)
+                prefix_count = max(prefixes.prefix_count, 1)
+                per_prefix_per_day = updates_per_day / prefix_count
 
                 risk_data["stability"] = {
                     "total_updates": update_count,
                     "updates_per_day": round(updates_per_day, 1),
+                    "prefix_count": prefixes.prefix_count,
+                    "updates_per_prefix_per_day": round(per_prefix_per_day, 2),
                     "period_days": days,
                 }
 
-                if updates_per_day > 100:
-                    penalty = min(25, int(updates_per_day / 20))
+                # Per-prefix thresholds — size-independent.
+                # >50/prefix/day is severe flapping (e.g. 300 for AS267613).
+                # ~1/prefix/day is normal for transit/CDN steady-state.
+                if per_prefix_per_day > 50:
+                    penalty = 25
                     stability_score -= penalty
-                    stability_factors.append(f"High churn: {updates_per_day:.0f} updates/day (-{penalty})")
-                    risk_data["warnings"].append(f"High BGP churn detected: {updates_per_day:.0f} updates/day")
-                elif updates_per_day > 50:
-                    penalty = min(15, int(updates_per_day / 10))
+                    stability_factors.append(
+                        f"High churn: {updates_per_day:.0f}/day across {prefix_count} prefixes "
+                        f"= {per_prefix_per_day:.1f}/prefix/day (-{penalty})"
+                    )
+                    risk_data["warnings"].append(
+                        f"High BGP churn detected: {per_prefix_per_day:.1f} updates/prefix/day"
+                    )
+                elif per_prefix_per_day > 10:
+                    penalty = 15
                     stability_score -= penalty
-                    stability_factors.append(f"Moderate churn: {updates_per_day:.0f} updates/day (-{penalty})")
-                elif updates_per_day > 10:
-                    penalty = min(5, int(updates_per_day / 5))
+                    stability_factors.append(
+                        f"Moderate churn: {per_prefix_per_day:.1f}/prefix/day "
+                        f"({updates_per_day:.0f}/day, {prefix_count} prefixes) (-{penalty})"
+                    )
+                elif per_prefix_per_day > 2:
+                    penalty = 5
                     stability_score -= penalty
-                    stability_factors.append(f"Some activity: {updates_per_day:.0f} updates/day (-{penalty})")
+                    stability_factors.append(
+                        f"Some activity: {per_prefix_per_day:.1f}/prefix/day (-{penalty})"
+                    )
                 else:
-                    stability_factors.append(f"Stable routing: {updates_per_day:.1f} updates/day (+0)")
-
-                prefixes = await ripestat.get_announced_prefixes(str(target_asn_int))
-                risk_data["stability"]["prefix_count"] = prefixes.prefix_count
+                    stability_factors.append(
+                        f"Stable routing: {per_prefix_per_day:.2f}/prefix/day "
+                        f"({updates_per_day:.0f}/day, {prefix_count} prefixes) (+0)"
+                    )
 
             except Exception as e:
                 stability_factors.append(f"Could not fetch stability data: {e}")
