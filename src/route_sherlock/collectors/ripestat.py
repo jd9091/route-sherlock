@@ -68,7 +68,8 @@ class RIPEstatClient:
     def __init__(
         self,
         cache: Cache | None = None,
-        cache_ttl: int = 3600,  # 1 hour default
+        cache_ttl: int = 86400,  # 24h default; was 1h, too aggressive for
+                                 # research / batch runs and demos
         timeout: float = 30.0,
         max_retries: int = 3,
         offline: bool = False,
@@ -171,9 +172,15 @@ class RIPEstatClient:
                 if not wrapped.is_success:
                     raise RIPEstatError(f"API error: {wrapped.data_call_status}")
 
-                # Cache successful response
+                # Cache successful response. Time-bounded queries (those
+                # with explicit starttime AND endtime — bgp-updates,
+                # routing-history) describe frozen historical data that
+                # cannot change, so cache them with no expiry. Live-state
+                # queries get the configured TTL.
                 if self.cache:
-                    await self.cache.set(cache_key, wrapped.data, ttl=self.cache_ttl)
+                    is_time_bounded = "starttime" in params and "endtime" in params
+                    effective_ttl = None if is_time_bounded else self.cache_ttl
+                    await self.cache.set(cache_key, wrapped.data, ttl=effective_ttl)
 
                 return wrapped.data
 
@@ -463,35 +470,52 @@ class RIPEstatClient:
             reverse=True,
         )
     
-    async def check_rpki_status(self, asn: str) -> dict[str, list[str]]:
+    async def check_rpki_status(
+        self,
+        asn: str,
+        sample_size: int | None = None,
+    ) -> dict[str, list[str]]:
         """
-        Check RPKI status for all prefixes announced by an ASN.
-        
+        Check RPKI status for prefixes announced by an ASN.
+
         Args:
             asn: AS number
-            
+            sample_size: If set, only validate up to this many prefixes
+                (chosen evenly across the announced set). Use a small
+                sample (e.g. 8-12) when scoring large networks where
+                validating every prefix would exceed RIPEstat rate
+                limits.
+
         Returns:
-            Dict with 'valid', 'invalid', 'not_found' prefix lists
+            Dict with 'valid', 'invalid', 'not_found' prefix lists, plus
+            a 'total_checked' integer key for ratio math.
         """
         prefixes = await self.get_announced_prefixes(asn)
-        
+
+        all_prefixes = [p.prefix for p in prefixes.prefixes]
+        if sample_size is not None and len(all_prefixes) > sample_size:
+            step = max(1, len(all_prefixes) // sample_size)
+            sampled = all_prefixes[::step][:sample_size]
+        else:
+            sampled = all_prefixes
+
         results: dict[str, list[str]] = {
             "valid": [],
             "invalid": [],
             "not_found": [],
         }
-        
-        # Check each prefix (with some rate limiting)
-        for prefix_obj in prefixes.prefixes:
+
+        for prefix in sampled:
             try:
-                validation = await self.get_rpki_validation(prefix_obj.prefix, asn)
+                validation = await self.get_rpki_validation(prefix, asn)
                 status_key = validation.status.replace("-", "_")
                 if status_key in results:
-                    results[status_key].append(prefix_obj.prefix)
-                await asyncio.sleep(0.1)  # Be nice to the API
+                    results[status_key].append(prefix)
+                await asyncio.sleep(0.1)
             except RIPEstatError:
                 continue
-        
+
+        results["total_checked"] = len(sampled)  # type: ignore[assignment]
         return results
 
 

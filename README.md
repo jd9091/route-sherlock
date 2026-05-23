@@ -145,35 +145,6 @@ $ route-sherlock peer-risk AS13335 --ai
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
-### `safeguards` - Per-Tier BGP Safeguards
-
-Turns a peer-risk score into concrete BGP configuration recommendations:
-`maximum-prefix` limit, IRR filter target, and RPKI policy — matching the
-risk tier (LOW / MODERATE / ELEVATED / HIGH).
-
-```bash
-$ route-sherlock safeguards AS267613
-
-ELETRONET S.A.  MODERATE  (72/100)
-
-╭───────────────────────┬───────────────────────────────────╮
-│ maximum-prefix (IPv4) │ 9  (1.5× announced (6))           │
-│ IRR filter target     │ RADB::AS-267613  (strict)         │
-│ RPKI policy           │ reject-invalid                    │
-│ Monitoring            │ recommended                       │
-│ Recommendation        │ Acceptable — implement monitoring │
-╰───────────────────────┴───────────────────────────────────╯
-```
-
-Tier mapping (see [Peer Risk Scoring](#peer-risk-scoring) for score→tier):
-
-| Risk     | Max-Prefix     | IRR Filter       | RPKI            |
-| -------- | -------------- | ---------------- | --------------- |
-| LOW      | 2× announced   | Standard         | Warn on invalid |
-| MODERATE | 1.5× announced | Strict           | Reject invalid  |
-| ELEVATED | 1.2× announced | Strict + verify  | Reject invalid  |
-| HIGH     | Decline        | N/A              | N/A             |
-
 ### `compare` - Side-by-Side ASN Comparison
 
 ```bash
@@ -282,6 +253,28 @@ $ route-sherlock peering-eval --my-asn AS64500 --target AS13335
 
 - Python 3.11+
 - bgpstream (for historical backtesting)
+
+## Known limitations
+
+Route Sherlock leans on public APIs and a small fixed scoring model. A few things you should know going in:
+
+- **Rate limits.** RIPEstat tolerates ~1000 req/day on the free tier; PeeringDB rate-limits aggressively under sustained load and will silently degrade policy/IX fields to `Unknown` rather than fail. The collectors retry with exponential backoff + jitter, but you'll feel it on large batch runs.
+- **Cold-cache latency.** First call against a new ASN takes ~2 minutes (RPKI sampling dominates). Subsequent calls hit the file cache at `~/.cache/route-sherlock` and return in well under a second. Use `--offline` to force cache-only.
+- **Data lag.** PeeringDB is self-reported by network operators; RIPEstat aggregates routing data with minutes-to-hours latency; BGPStream archives are minutes behind real-time.
+- **Stability metric is not normalised by prefix count.** A real Tier-1 announcing thousands of prefixes will cross the absolute-updates/day thresholds on size alone. Normalisation is on the roadmap.
+- **IX overlap counts membership, not peerability.** Today the score just intersects PeeringDB IX IDs; it doesn't yet check operational status, route-server availability, policy compatibility, or speed mismatch.
+- **No point-in-time scoring.** `--days N` is a rolling window from *now*; there is no `--as-of <date>` yet, and no `last_incident_at` is surfaced separately from the rolling window.
+- **RPKI is sampled, not exhaustive.** The default samples 8 prefixes per network. For a Tier-1 with thousands of ROAs that's a coverage estimate, not a complete audit.
+
+These are tracked as open issues — see the [Contributing](#contributing) section if you want to fix one.
+
+## Contributing
+
+Issues, methodology critiques, and PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the dev setup, the issue templates, and the list of open work items. Three quick pointers:
+
+- File a [bug](https://github.com/jd9091/route-sherlock/issues/new?template=bug_report.md), a [feature](https://github.com/jd9091/route-sherlock/issues/new?template=feature_request.md), or a [methodology critique](https://github.com/jd9091/route-sherlock/issues/new?template=methodology.md).
+- Open-ended questions go in [Discussions](https://github.com/jd9091/route-sherlock/discussions).
+- For anything that doesn't fit a public thread: davejd2990@gmail.com.
 
 ## License
 

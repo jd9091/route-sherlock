@@ -6,9 +6,13 @@ Async implementations for all CLI commands with Rich output.
 from __future__ import annotations
 
 import asyncio
+import json
 import os
+import time
+from contextlib import contextmanager
 from datetime import datetime, timedelta
-from typing import Any
+from pathlib import Path
+from typing import Any, Iterator
 
 from rich.console import Console
 from rich.table import Table
@@ -23,6 +27,43 @@ from route_sherlock.collectors.atlas import AtlasClient
 from route_sherlock.cache.store import Cache, FileCache, OfflineCacheMiss
 
 console = Console()
+
+
+@contextmanager
+def step(msg: str, *, quiet: bool = False) -> Iterator[None]:
+    """Emit a transcript line for each pipeline step.
+
+    Prints "[HH:MM:SS] → <msg>" before the block runs, then
+    "[HH:MM:SS] ✓ <msg> (Xs)" after. Suppress in --json mode by passing
+    quiet=True so structured output isn't polluted by progress text.
+    Uses console.print (not console.log) so the source-file annotation
+    Rich adds by default doesn't show up next to each line.
+    """
+    if not quiet:
+        ts = datetime.utcnow().strftime("%H:%M:%S")
+        console.print(f"[dim]\\[{ts}][/] [cyan]→[/] {msg}")
+    t0 = time.monotonic()
+    try:
+        yield
+    finally:
+        if not quiet:
+            elapsed = time.monotonic() - t0
+            ts = datetime.utcnow().strftime("%H:%M:%S")
+            console.print(f"[dim]\\[{ts}][/] [green]✓[/] {msg} [dim]({elapsed:.1f}s)[/]")
+
+
+def _emit_json(data: Any, output_path: str | None) -> None:
+    """Render the structured result as JSON.
+
+    To stdout if no path; to the file otherwise. ``default=str`` covers
+    datetime values that may appear inside collector responses.
+    """
+    blob = json.dumps(data, indent=2, default=str, sort_keys=True)
+    if output_path:
+        Path(output_path).expanduser().write_text(blob, encoding="utf-8")
+        console.print(f"[green]✓[/] Wrote {len(blob):,} bytes to {output_path}")
+    else:
+        print(blob)
 
 
 def get_peeringdb_key() -> str | None:
@@ -981,12 +1022,19 @@ async def _gather_peer_risk_data(
     pdb_key: str | None,
     cache: Cache | None = None,
     offline: bool = False,
+    quiet: bool = False,
+    cache_ttl: int = 86400,
 ) -> dict[str, Any]:
     """Run the full peer-risk data-collection pipeline.
 
     Returns the risk_data dict with all scoring sections populated and
     ``total_score``, ``max_score``, ``percentage``, ``risk_level``, and
     ``recommendation`` set. Display is the caller's responsibility.
+
+    When ``quiet=False`` (default) each pipeline step emits a persistent
+    transcript line so the audience can see what the tool is doing.
+    Pass ``quiet=True`` from ``--json`` callers so structured output
+    isn't polluted by progress text.
     """
     risk_data: dict[str, Any] = {
         "target_asn": target_asn_int,
@@ -1001,24 +1049,15 @@ async def _gather_peer_risk_data(
     end_time = datetime.utcnow()
     start_time = end_time - timedelta(days=days)
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        console=console,
-        transient=True,
-    ) as progress:
-        task = progress.add_task("Collecting data...", total=None)
+    # ============================================================
+    # 1. BASIC INFO & NETWORK MATURITY (0-20 points)
+    # ============================================================
+    maturity_score = 0
+    maturity_factors = []
 
-        # ============================================================
-        # 1. BASIC INFO & NETWORK MATURITY (0-20 points)
-        # ============================================================
-        progress.update(task, description="Fetching network info...")
-
-        maturity_score = 0
-        maturity_factors = []
-
+    with step(f"PeeringDB: fetching network profile for AS{target_asn_int}", quiet=quiet):
         try:
-            async with PeeringDBClient(api_key=pdb_key, cache=cache, offline=offline) as pdb:
+            async with PeeringDBClient(api_key=pdb_key, cache=cache, offline=offline, cache_ttl=cache_ttl) as pdb:
                 try:
                     network = await pdb.get_network_by_asn(target_asn_int)
                     risk_data["network"] = {
@@ -1092,19 +1131,17 @@ async def _gather_peer_risk_data(
             risk_data["warnings"].append(f"PeeringDB lookup failed: {e}")
             risk_data["network"] = {"name": f"AS{target_asn_int}"}
 
-        risk_data["scores"]["maturity"] = {"score": maturity_score, "max": 20, "factors": maturity_factors}
+    risk_data["scores"]["maturity"] = {"score": maturity_score, "max": 20, "factors": maturity_factors}
 
-        # ============================================================
-        # 2. STABILITY SCORE (0-30 points)
-        # ============================================================
-        progress.update(task, description="Analyzing routing stability...")
+    # ============================================================
+    # 2. STABILITY SCORE (0-30 points)
+    # ============================================================
+    stability_score = 30  # Start high, deduct for instability
+    stability_factors = []
 
-        stability_score = 30  # Start high, deduct for instability
-        stability_factors = []
-
-        async with RIPEstatClient(cache=cache, offline=offline) as ripestat:
+    with step(f"RIPEstat: fetching {days}-day BGP update history", quiet=quiet):
+        async with RIPEstatClient(cache=cache, offline=offline, cache_ttl=cache_ttl) as ripestat:
             try:
-                # Get BGP updates
                 updates = await ripestat.get_bgp_updates(
                     str(target_asn_int),
                     start_time=start_time,
@@ -1119,7 +1156,6 @@ async def _gather_peer_risk_data(
                     "period_days": days,
                 }
 
-                # Score based on update frequency
                 if updates_per_day > 100:
                     penalty = min(25, int(updates_per_day / 20))
                     stability_score -= penalty
@@ -1136,7 +1172,6 @@ async def _gather_peer_risk_data(
                 else:
                     stability_factors.append(f"Stable routing: {updates_per_day:.1f} updates/day (+0)")
 
-                # Check for prefix count
                 prefixes = await ripestat.get_announced_prefixes(str(target_asn_int))
                 risk_data["stability"]["prefix_count"] = prefixes.prefix_count
 
@@ -1144,26 +1179,22 @@ async def _gather_peer_risk_data(
                 stability_factors.append(f"Could not fetch stability data: {e}")
                 risk_data["stability"] = {"error": str(e)}
 
-        stability_score = max(0, stability_score)
-        risk_data["scores"]["stability"] = {"score": stability_score, "max": 30, "factors": stability_factors}
+    stability_score = max(0, stability_score)
+    risk_data["scores"]["stability"] = {"score": stability_score, "max": 30, "factors": stability_factors}
 
-        # ============================================================
-        # 3. INCIDENT HISTORY (0-30 points)
-        # ============================================================
-        progress.update(task, description="Checking incident history...")
+    # ============================================================
+    # 3. INCIDENT HISTORY (0-30 points)
+    # ============================================================
+    topology_score = 30  # Start high, deduct for incidents
+    topology_factors = []
 
-        incident_score = 30  # Start high, deduct for incidents
-        incident_factors = []
-
-        # Check RIPEstat for routing history anomalies
-        async with RIPEstatClient(cache=cache, offline=offline) as ripestat:
+    with step("RIPEstat: checking topology (upstreams/downstreams)", quiet=quiet):
+        async with RIPEstatClient(cache=cache, offline=offline, cache_ttl=cache_ttl) as ripestat:
             try:
-                # Get AS overview for basic info
                 overview = await ripestat.get_as_overview(str(target_asn_int))
                 if overview.holder:
                     risk_data["network"]["name"] = overview.holder
 
-                # Get neighbour info to check for unusual patterns
                 neighbours = await ripestat.get_as_neighbours(str(target_asn_int))
 
                 upstream_count = len(neighbours.upstreams)
@@ -1175,91 +1206,126 @@ async def _gather_peer_risk_data(
                     "top_upstreams": [{"asn": n.asn, "power": n.power} for n in neighbours.upstreams[:5]],
                 }
 
-                # Single upstream is a risk factor
                 if upstream_count == 1:
-                    incident_score -= 5
-                    incident_factors.append("Single upstream - limited redundancy (-5)")
+                    topology_score -= 5
+                    topology_factors.append("Single upstream - limited redundancy (-5)")
                     risk_data["warnings"].append("Single upstream provider - potential single point of failure")
                 elif upstream_count >= 3:
-                    incident_factors.append(f"Multiple upstreams ({upstream_count}) - good redundancy (+0)")
+                    topology_factors.append(f"Multiple upstreams ({upstream_count}) - good redundancy (+0)")
 
-                # Large downstream count might indicate transit provider
                 if downstream_count > 100:
-                    incident_factors.append(f"Major transit provider ({downstream_count} downstreams)")
+                    topology_factors.append(f"Major transit provider ({downstream_count} downstreams)")
                     risk_data["network"]["type_inferred"] = "transit"
 
             except Exception as e:
-                incident_factors.append(f"Could not verify topology: {e}")
+                topology_factors.append(f"Could not verify topology: {e}")
 
-        # Check RPKI/ROA status
-        progress.update(task, description="Checking RPKI status...")
-        async with RIPEstatClient(cache=cache, offline=offline) as ripestat:
+    with step("RIPEstat: sampling RPKI ROAs (8 prefixes)", quiet=quiet):
+        async with RIPEstatClient(cache=cache, offline=offline, cache_ttl=cache_ttl) as ripestat:
             try:
-                prefixes = await ripestat.get_announced_prefixes(str(target_asn_int))
+                rpki = await ripestat.check_rpki_status(
+                    str(target_asn_int), sample_size=8
+                )
+                total = rpki.get("total_checked", 0) or 0
+                valid = len(rpki.get("valid", []))
+                invalid = len(rpki.get("invalid", []))
+                not_found = len(rpki.get("not_found", []))
+                valid_pct = round(valid / total * 100, 1) if total else 0.0
 
-                # We can't easily check ROA coverage via RIPEstat in this version,
-                # but we note the prefix count for reference
-                prefix_count = prefixes.prefix_count
                 risk_data["rpki"] = {
-                    "prefixes_announced": prefix_count,
-                    "note": "RPKI validation requires additional data sources",
+                    "checked": total,
+                    "valid": valid,
+                    "invalid": invalid,
+                    "not_found": not_found,
+                    "valid_pct": valid_pct,
+                    "invalid_prefixes": rpki.get("invalid", []),
                 }
 
-                # For now, give partial credit if they have reasonable prefix count
-                if prefix_count > 0:
-                    incident_factors.append(f"Announcing {prefix_count} prefixes")
+                if total > 0:
+                    topology_factors.append(
+                        f"RPKI sample: {valid}/{total} valid, "
+                        f"{invalid} invalid, {not_found} not-found"
+                    )
 
-            except Exception:
-                pass
+            except Exception as e:
+                risk_data["rpki"] = {"error": str(e)}
 
-        incident_score = max(0, incident_score)
-        risk_data["scores"]["incident_history"] = {"score": incident_score, "max": 30, "factors": incident_factors}
+    topology_score = max(0, topology_score)
+    # Was "incident_history" — misleading because the block actually scores
+    # topology (upstream count, transit redundancy) + RPKI posture, not any
+    # incident lookup. Real past-incident detection is on the roadmap.
+    risk_data["scores"]["topology"] = {"score": topology_score, "max": 30, "factors": topology_factors}
 
-        # ============================================================
-        # 4. POLICY COMPATIBILITY (0-10 points)
-        # ============================================================
-        policy_score = 0
-        policy_factors = []
+    # ============================================================
+    # 4. POLICY COMPATIBILITY (0-10 points) — computation only
+    # ============================================================
+    policy_score = 0
+    policy_factors = []
 
-        policy = risk_data.get("network", {}).get("policy", "Unknown")
-        if policy:
-            policy_lower = policy.lower() if policy else ""
-            if policy_lower == "open":
-                policy_score = 10
-                policy_factors.append("Open peering policy (+10)")
-            elif policy_lower == "selective":
-                policy_score = 7
-                policy_factors.append("Selective peering policy (+7)")
-            elif policy_lower == "restrictive":
-                policy_score = 3
-                policy_factors.append("Restrictive peering policy (+3)")
-                risk_data["warnings"].append("Restrictive peering policy may make establishing session difficult")
-            else:
-                policy_score = 5
-                policy_factors.append(f"Policy: {policy} (+5)")
+    policy = risk_data.get("network", {}).get("policy", "Unknown")
+    if policy:
+        policy_lower = policy.lower() if policy else ""
+        if policy_lower == "open":
+            policy_score = 10
+            policy_factors.append("Open peering policy (+10)")
+        elif policy_lower == "selective":
+            policy_score = 7
+            policy_factors.append("Selective peering policy (+7)")
+        elif policy_lower == "restrictive":
+            policy_score = 3
+            policy_factors.append("Restrictive peering policy (+3)")
+            risk_data["warnings"].append("Restrictive peering policy may make establishing session difficult")
         else:
-            policy_factors.append("No policy information available (+0)")
+            policy_score = 5
+            policy_factors.append(f"Policy: {policy} (+5)")
+    else:
+        policy_factors.append("No policy information available (+0)")
 
-        risk_data["scores"]["policy"] = {"score": policy_score, "max": 10, "factors": policy_factors}
+    risk_data["scores"]["policy"] = {"score": policy_score, "max": 10, "factors": policy_factors}
 
-        # ============================================================
-        # 5. SECURITY POSTURE (0-10 points)
-        # ============================================================
-        security_score = 5  # Base score
-        security_factors = []
+    # ============================================================
+    # 5. SECURITY POSTURE (0-10 points) — computation only
+    # ============================================================
+    security_score = 5  # Base score
+    security_factors = []
 
-        # IRR registration contributes to security
-        if risk_data.get("network", {}).get("irr_as_set"):
+    if risk_data.get("network", {}).get("irr_as_set"):
+        security_score += 3
+        security_factors.append("IRR registered (+3)")
+
+    if risk_data.get("topology", {}).get("upstreams", 0) >= 2:
+        security_score += 2
+        security_factors.append("Multiple transit relationships (+2)")
+
+    rpki_info = risk_data.get("rpki", {})
+    rpki_checked = rpki_info.get("checked", 0)
+    rpki_invalid = rpki_info.get("invalid", 0)
+    rpki_valid_pct = rpki_info.get("valid_pct", 0.0)
+    if rpki_checked > 0:
+        if rpki_invalid > 0:
+            security_score -= 3
+            security_factors.append(
+                f"RPKI-invalid announcements: {rpki_invalid}/{rpki_checked} sampled (-3)"
+            )
+            risk_data["warnings"].append(
+                f"RPKI-invalid prefixes detected: "
+                f"{', '.join(rpki_info.get('invalid_prefixes', [])[:3])}"
+            )
+        elif rpki_valid_pct >= 50:
             security_score += 3
-            security_factors.append("IRR registered (+3)")
+            security_factors.append(
+                f"RPKI ROAs cover {rpki_valid_pct:.0f}% of sampled prefixes (+3)"
+            )
+        elif rpki_valid_pct > 0:
+            security_score += 1
+            security_factors.append(
+                f"Partial RPKI signing: {rpki_valid_pct:.0f}% of sampled prefixes (+1)"
+            )
+        else:
+            security_factors.append("No RPKI ROAs in sample (+0)")
 
-        # Multiple upstreams suggest better filtering
-        if risk_data.get("topology", {}).get("upstreams", 0) >= 2:
-            security_score += 2
-            security_factors.append("Multiple transit relationships (+2)")
-
-        security_score = min(10, security_score)
-        risk_data["scores"]["security"] = {"score": security_score, "max": 10, "factors": security_factors}
+    security_score = max(0, min(10, security_score))
+    risk_data["scores"]["security"] = {"score": security_score, "max": 10, "factors": security_factors}
 
     # ============================================================
     # CALCULATE TOTAL SCORE
@@ -1301,6 +1367,9 @@ async def run_peer_risk(
     days: int,
     use_ai: bool = False,
     offline: bool = False,
+    json_output: bool = False,
+    output_path: str | None = None,
+    cache_ttl: int = 86400,
 ):
     """
     Evaluate peering risk for an ASN.
@@ -1311,27 +1380,42 @@ async def run_peer_risk(
     - Network maturity (PeeringDB completeness, IX presence)
     - Policy compatibility
     - Security posture (RPKI coverage)
+
+    With ``json_output=True``, suppresses the Rich render and emits the
+    full ``risk_data`` blob as JSON (to ``output_path`` if given, else
+    stdout). The pipeline transcript is also suppressed so the JSON
+    isn't polluted by progress text.
     """
     target_asn_int = normalize_asn(target_asn)
     my_asn_int = normalize_asn(my_asn) if my_asn else None
     pdb_key = get_peeringdb_key()
     cache = FileCache()
 
-    console.print()
-    console.print(Panel(
-        f"[bold]🔒 Peer Risk Assessment: AS{target_asn_int}[/]"
-        + ("  [yellow](offline)[/]" if offline else ""),
-        box=box.DOUBLE,
-    ))
+    if not json_output:
+        console.print()
+        console.print(Panel(
+            f"[bold]🔒 Peer Risk Assessment: AS{target_asn_int}[/]"
+            + ("  [yellow](offline)[/]" if offline else ""),
+            box=box.DOUBLE,
+        ))
 
     try:
         risk_data = await _gather_peer_risk_data(
-            target_asn_int, my_asn_int, days, pdb_key, cache=cache, offline=offline,
+            target_asn_int, my_asn_int, days, pdb_key,
+            cache=cache, offline=offline, quiet=json_output,
+            cache_ttl=cache_ttl,
         )
     except OfflineCacheMiss as e:
-        console.print()
-        console.print(f"[red]✗ Offline mode: {e}[/]")
-        console.print("[dim]Run once without --offline to populate the cache.[/]")
+        if json_output:
+            _emit_json({"error": "offline_cache_miss", "detail": str(e)}, output_path)
+        else:
+            console.print()
+            console.print(f"[red]✗ Offline mode: {e}[/]")
+            console.print("[dim]Run once without --offline to populate the cache.[/]")
+        return
+
+    if json_output:
+        _emit_json(risk_data, output_path)
         return
 
     risk_level = risk_data["risk_level"]
@@ -1381,9 +1465,9 @@ async def run_peer_risk(
         else:
             score_str = f"[red]{score_str}[/]"
 
-        factors_str = "; ".join(data["factors"][:2]) if data["factors"] else "-"
-        if len(factors_str) > 50:
-            factors_str = factors_str[:47] + "..."
+        factors_str = "; ".join(data["factors"][:3]) if data["factors"] else "-"
+        if len(factors_str) > 80:
+            factors_str = factors_str[:77] + "..."
 
         score_table.add_row(
             category.replace("_", " ").title(),
@@ -1531,90 +1615,3 @@ async def run_peer_risk(
     console.print(f"[dim]Data sources: RIPEstat, PeeringDB | Analysis: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}[/]")
 
 
-# ============================================================================
-# Safeguards Command
-# ============================================================================
-
-async def run_safeguards(target_asn: str, days: int, offline: bool = False):
-    """
-    Generate concrete BGP safeguards for a candidate peer.
-
-    Runs the peer-risk pipeline and emits the maximum-prefix limit, IRR filter
-    target, and RPKI policy that match the resulting risk tier (per the
-    "Practical Safeguards by Risk Level" table).
-    """
-    from route_sherlock.analysis.safeguards import compute_safeguards
-
-    target_asn_int = normalize_asn(target_asn)
-    pdb_key = get_peeringdb_key()
-    cache = FileCache()
-
-    console.print()
-    console.print(Panel(
-        f"[bold]🛡 Safeguards: AS{target_asn_int}[/]"
-        + ("  [yellow](offline)[/]" if offline else ""),
-        box=box.DOUBLE,
-    ))
-
-    try:
-        risk_data = await _gather_peer_risk_data(
-            target_asn_int, None, days, pdb_key, cache=cache, offline=offline,
-        )
-    except OfflineCacheMiss as e:
-        console.print()
-        console.print(f"[red]✗ Offline mode: {e}[/]")
-        console.print("[dim]Run once without --offline to populate the cache.[/]")
-        return
-    sg = compute_safeguards(risk_data)
-
-    risk_color = {
-        "LOW": "green",
-        "MODERATE": "yellow",
-        "ELEVATED": "orange1",
-        "HIGH": "red",
-    }.get(sg["risk_level"], "white")
-
-    network_name = sg.get("network_name") or f"AS{target_asn_int}"
-    console.print()
-    console.print(f"[bold]{network_name}[/]  "
-                  f"[{risk_color}]{sg['risk_level']}[/]  "
-                  f"[dim]({sg['total_score']}/{sg['max_score']})[/]")
-    console.print()
-
-    table = Table(box=box.ROUNDED, show_header=False)
-    table.add_column("Field", style="bold")
-    table.add_column("Value")
-
-    if sg["decline"]:
-        table.add_row("Recommendation", f"[red]{sg['recommendation']}[/]")
-    else:
-        max_prefix = sg["max_prefix"]
-        max_prefix_str = (
-            f"[bold]{max_prefix}[/]  [dim]({sg['max_prefix_basis']})[/]"
-            if max_prefix is not None
-            else f"[yellow]unknown[/]  [dim]({sg['max_prefix_basis']})[/]"
-        )
-        irr_filter = sg["irr_filter"] or "[yellow]none registered[/]"
-        table.add_row("maximum-prefix (IPv4)", max_prefix_str)
-        table.add_row("IRR filter target", f"{irr_filter}  [dim]({sg['irr_strictness']})[/]")
-        table.add_row("RPKI policy", sg["rpki_policy"])
-        table.add_row("Monitoring", sg["monitoring"])
-        table.add_row("Recommendation", f"[{risk_color}]{sg['recommendation']}[/]")
-
-    console.print(table)
-
-    if sg["rationale"]:
-        console.print()
-        console.print("[bold cyan]## Why[/]")
-        for line in sg["rationale"]:
-            console.print(f"   • {line}")
-
-    if sg["warnings"]:
-        console.print()
-        console.print("[bold yellow]## ⚠ Verify[/]")
-        for warning in sg["warnings"]:
-            console.print(f"   • {warning}")
-
-    console.print()
-    console.print(f"[dim]Data sources: RIPEstat, PeeringDB | "
-                  f"Analysis: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}[/]")

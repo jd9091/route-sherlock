@@ -173,6 +173,23 @@ def peer_risk(
         help="Serve only from the on-disk cache (~/.cache/route-sherlock). "
              "Useful when wifi is flaky or upstream APIs are unavailable.",
     ),
+    json_output: bool = typer.Option(
+        False, "--json",
+        help="Emit the full risk_data blob as JSON instead of the Rich render. "
+             "Pipe into jq or feed into automation.",
+    ),
+    output: Optional[str] = typer.Option(
+        None, "--output",
+        help="With --json, write the JSON to this file instead of stdout.",
+    ),
+    cache_ttl: int = typer.Option(
+        86400, "--cache-ttl",
+        help="How long to keep cached responses, in seconds. Default 24h. "
+             "Set to 0 to bypass the cache; set to a large value (e.g. 604800 = 1 week) "
+             "for batch / research runs that should not re-fetch mid-run. "
+             "Time-bounded historical queries (BGP updates with explicit start/end) "
+             "are always cached indefinitely — they describe frozen history.",
+    ),
 ):
     """
     Evaluate peering risk for an ASN - should you peer with them?
@@ -185,33 +202,17 @@ def peer_risk(
         route-sherlock peer-risk AS64500 --my-asn AS13335
         route-sherlock peer-risk AS64500 --days 180 --ai
         route-sherlock peer-risk AS64500 --offline
+        route-sherlock peer-risk AS64500 --json | jq '.scores'
+        route-sherlock peer-risk AS64500 --json --output AS64500.json
+        route-sherlock peer-risk AS64500 --cache-ttl 604800   # week-long research run
     """
     from route_sherlock.cli.commands import run_peer_risk
-    asyncio.run(run_peer_risk(target, my_asn, days, use_ai=ai, offline=offline))
-
-
-@app.command()
-def safeguards(
-    target: str = typer.Argument(..., help="Target ASN to evaluate (e.g., AS64500)"),
-    days: int = typer.Option(90, "--days", "-d", help="Days of history to analyze"),
-    offline: bool = typer.Option(
-        False, "--offline", "-o",
-        help="Serve only from the on-disk cache (~/.cache/route-sherlock).",
-    ),
-):
-    """
-    Generate concrete BGP safeguards for a candidate peer.
-
-    Runs the peer-risk pipeline and emits the maximum-prefix limit, IRR
-    filter target, and RPKI policy matching the resulting risk tier.
-
-    Examples:
-        route-sherlock safeguards AS267613
-        route-sherlock safeguards AS13335 --days 180
-        route-sherlock safeguards AS267613 --offline
-    """
-    from route_sherlock.cli.commands import run_safeguards
-    asyncio.run(run_safeguards(target, days, offline=offline))
+    asyncio.run(run_peer_risk(
+        target, my_asn, days,
+        use_ai=ai, offline=offline,
+        json_output=json_output, output_path=output,
+        cache_ttl=cache_ttl,
+    ))
 
 
 def main():

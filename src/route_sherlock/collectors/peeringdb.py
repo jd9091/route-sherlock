@@ -79,7 +79,7 @@ class PeeringDBClient:
         username: str | None = None,
         password: str | None = None,
         cache: Cache | None = None,
-        cache_ttl: int = 3600,  # 1 hour default
+        cache_ttl: int = 86400,  # 24h default — PeeringDB profiles change rarely
         timeout: float = 30.0,
         max_retries: int = 3,
         offline: bool = False,

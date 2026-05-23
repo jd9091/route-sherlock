@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Open a discussion
+    url: https://github.com/jd9091/route-sherlock/discussions
+    about: Questions, peering use cases, brainstorming — anything that isn't a concrete bug or feature.
+  - name: NANOG mailing list
+    url: https://mailman.nanog.org/mailman/listinfo/nanog
+    about: For broader BGP / peering discussion with the operator community.
