@@ -24,6 +24,7 @@ from route_sherlock.models.ripestat import (
     ASNeighbours,
     ASOverview,
     ASPathLength,
+    BGPUpdateActivity,
     BGPUpdates,
     LookingGlass,
     RIPEstatResponse,
@@ -340,7 +341,38 @@ class RIPEstatClient:
 
         data = await self._request("bgp-updates", params)
         return BGPUpdates(**data)
-    
+
+    async def get_bgp_update_activity(
+        self,
+        resource: str,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+    ) -> BGPUpdateActivity:
+        """Get histogrammed BGP update counts.
+
+        Unlike ``get_bgp_updates`` (which streams individual events and 502s
+        on multi-day windows for high-volume ASNs), this endpoint returns
+        per-bin counts and serves 30-day queries in under a second.
+        Use this when you only need totals/rates, not per-event details.
+        """
+        resource = self._normalize_resource(resource)
+
+        if end_time is None:
+            end_time = datetime.utcnow()
+        if start_time is None:
+            start_time = end_time - timedelta(days=1)
+
+        end_time = end_time.replace(minute=0, second=0, microsecond=0)
+        start_time = start_time.replace(minute=0, second=0, microsecond=0)
+
+        params = {
+            "resource": resource,
+            "starttime": self._format_time(start_time),
+            "endtime": self._format_time(end_time),
+        }
+        data = await self._request("bgp-update-activity", params)
+        return BGPUpdateActivity(**data)
+
     async def get_announced_prefixes(self, asn: str) -> AnnouncedPrefixes:
         """
         Get all prefixes announced by an ASN.
@@ -384,10 +416,17 @@ class RIPEstatClient:
         Returns:
             RPKIValidation with ROA status
         """
-        params = {"resource": prefix}
-        if origin_asn:
-            params["origin"] = self._normalize_resource(origin_asn)
-        
+        # RIPEstat's rpki-validation endpoint expects resource=<ASN> and
+        # prefix=<prefix>. Sending the prefix as resource (with origin=<ASN>)
+        # returns 400 Bad Request, which the sampler then silently swallows —
+        # producing a "checked: N" result with every bucket empty.
+        if not origin_asn:
+            raise ValueError("origin_asn is required for RPKI validation")
+        params = {
+            "resource": self._normalize_resource(origin_asn),
+            "prefix": prefix,
+        }
+
         data = await self._request("rpki-validation", params)
         return RPKIValidation(**data)
     

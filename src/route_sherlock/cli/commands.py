@@ -71,7 +71,14 @@ def get_peeringdb_key() -> str | None:
 
 
 def normalize_asn(asn: str) -> int:
-    return int(asn.strip().upper().replace("AS", ""))
+    # Pull out the digit run so invisible characters that slip in via
+    # copy-paste from docs (zero-width space U+200B, BOM U+FEFF, etc.)
+    # don't crash int(). str.strip() only handles standard whitespace.
+    import re
+    m = re.search(r"\d+", asn)
+    if not m:
+        raise ValueError(f"no ASN number found in {asn!r}")
+    return int(m.group(0))
 
 
 # ============================================================================
@@ -574,101 +581,6 @@ async def run_investigate(resource: str, time_str: str | None, duration: str, us
 
 
 # ============================================================================
-# Stability Command
-# ============================================================================
-
-async def run_stability(asn: str, days: int):
-    """Calculate stability score for an ASN."""
-    asn_int = normalize_asn(asn)
-
-    console.print()
-    console.print(f"[bold]📊 Stability Analysis: AS{asn_int}[/]")
-    console.print(f"[dim]Period: Last {days} days[/]")
-    console.print()
-
-    end_time = datetime.utcnow()
-    start_time = end_time - timedelta(days=days)
-
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        console=console,
-        transient=True,
-    ) as progress:
-        task = progress.add_task("Analyzing...", total=None)
-
-        async with RIPEstatClient() as ripestat:
-            progress.update(task, description="Fetching BGP updates...")
-            try:
-                updates = await ripestat.get_bgp_updates(
-                    str(asn_int),
-                    start_time=start_time,
-                    end_time=end_time,
-                )
-                update_count = len(updates.updates)
-            except Exception:
-                update_count = 0
-
-            progress.update(task, description="Fetching prefix info...")
-            try:
-                prefixes = await ripestat.get_announced_prefixes(str(asn_int))
-                prefix_count = prefixes.prefix_count
-            except Exception:
-                prefix_count = 0
-
-    # Calculate score
-    score = 100
-    factors = {}
-
-    # Updates per day
-    updates_per_day = update_count / max(days, 1)
-    if updates_per_day > 100:
-        penalty = min(30, int(updates_per_day / 10))
-        score -= penalty
-        factors["High update rate"] = f"-{penalty}"
-    elif updates_per_day > 10:
-        penalty = min(15, int(updates_per_day / 2))
-        score -= penalty
-        factors["Moderate update rate"] = f"-{penalty}"
-
-    score = max(0, min(100, score))
-
-    # Output
-    if score >= 90:
-        score_color = "green"
-        assessment = "Excellent"
-    elif score >= 70:
-        score_color = "yellow"
-        assessment = "Good"
-    elif score >= 50:
-        score_color = "orange1"
-        assessment = "Fair"
-    else:
-        score_color = "red"
-        assessment = "Poor"
-
-    console.print(Panel(
-        f"[bold {score_color}]{score}/100[/]\n[dim]{assessment}[/]",
-        title="Stability Score",
-        box=box.DOUBLE,
-    ))
-
-    table = Table(box=box.SIMPLE)
-    table.add_column("Metric", style="dim")
-    table.add_column("Value")
-    table.add_row("BGP Updates", f"{update_count:,}")
-    table.add_row("Updates/Day", f"{updates_per_day:.1f}")
-    table.add_row("Prefixes", f"{prefix_count:,}")
-    console.print(table)
-
-    if factors:
-        console.print()
-        console.print("[bold]Score Factors:[/]")
-        for factor, impact in factors.items():
-            console.print(f"  • {factor}: {impact}")
-
-
-# ============================================================================
 # IX Presence Command
 # ============================================================================
 
@@ -1136,8 +1048,9 @@ async def _gather_peer_risk_data(
     # ============================================================
     # 2. STABILITY SCORE (0-30 points)
     # ============================================================
-    stability_score = 30  # Start high, deduct for instability
+    stability_score: int | None = 30  # Start high, deduct for instability
     stability_factors = []
+    stability_failed = False
 
     with step(f"RIPEstat: fetching {days}-day BGP update history", quiet=quiet):
         async with RIPEstatClient(cache=cache, offline=offline, cache_ttl=cache_ttl) as ripestat:
@@ -1147,14 +1060,14 @@ async def _gather_peer_risk_data(
                 # signal: a Tier-1 with 10,000 prefixes legitimately exceeds
                 # 100/day on best-path churn alone, while a 6-prefix stub
                 # at 50/day is actually flapping hard.
-                updates = await ripestat.get_bgp_updates(
+                activity = await ripestat.get_bgp_update_activity(
                     str(target_asn_int),
                     start_time=start_time,
                     end_time=end_time,
                 )
                 prefixes = await ripestat.get_announced_prefixes(str(target_asn_int))
 
-                update_count = len(updates.updates)
+                update_count = activity.total_updates
                 updates_per_day = update_count / max(days, 1)
                 prefix_count = max(prefixes.prefix_count, 1)
                 per_prefix_per_day = updates_per_day / prefix_count
@@ -1200,11 +1113,25 @@ async def _gather_peer_risk_data(
                     )
 
             except Exception as e:
-                stability_factors.append(f"Could not fetch stability data: {e}")
-                risk_data["stability"] = {"error": str(e)}
+                # Don't silently retain the starting 30/30 — that produces a
+                # false-perfect score on a transient RIPEstat outage. Flag as
+                # unknown so the panel + total honestly exclude this category.
+                stability_failed = True
+                stability_score = None
+                stability_factors.append(f"Stability data unavailable: {e}")
+                risk_data["stability"] = {"error": str(e), "score": "unknown"}
+                risk_data["warnings"].append(
+                    "Stability score unavailable — RIPEstat bgp-update-activity fetch failed"
+                )
 
-    stability_score = max(0, stability_score)
-    risk_data["scores"]["stability"] = {"score": stability_score, "max": 30, "factors": stability_factors}
+    if stability_score is not None:
+        stability_score = max(0, stability_score)
+    risk_data["scores"]["stability"] = {
+        "score": stability_score,
+        "max": 30,
+        "factors": stability_factors,
+        "available": not stability_failed,
+    }
 
     # ============================================================
     # 3. INCIDENT HISTORY (0-30 points)
@@ -1280,35 +1207,14 @@ async def _gather_peer_risk_data(
     # incident lookup. Real past-incident detection is on the roadmap.
     risk_data["scores"]["topology"] = {"score": topology_score, "max": 30, "factors": topology_factors}
 
-    # ============================================================
-    # 4. POLICY COMPATIBILITY (0-10 points) — computation only
-    # ============================================================
-    policy_score = 0
-    policy_factors = []
-
-    policy = risk_data.get("network", {}).get("policy", "Unknown")
-    if policy:
-        policy_lower = policy.lower() if policy else ""
-        if policy_lower == "open":
-            policy_score = 10
-            policy_factors.append("Open peering policy (+10)")
-        elif policy_lower == "selective":
-            policy_score = 7
-            policy_factors.append("Selective peering policy (+7)")
-        elif policy_lower == "restrictive":
-            policy_score = 3
-            policy_factors.append("Restrictive peering policy (+3)")
-            risk_data["warnings"].append("Restrictive peering policy may make establishing session difficult")
-        else:
-            policy_score = 5
-            policy_factors.append(f"Policy: {policy} (+5)")
-    else:
-        policy_factors.append("No policy information available (+0)")
-
-    risk_data["scores"]["policy"] = {"score": policy_score, "max": 10, "factors": policy_factors}
+    # Policy was previously a 10-point category — dropped because it
+    # measured self-declared willingness, not operational risk, and
+    # double-counted what Maturity already rewards for PeeringDB
+    # hygiene. The network's policy string is still surfaced on the
+    # Network Profile panel for context.
 
     # ============================================================
-    # 5. SECURITY POSTURE (0-10 points) — computation only
+    # 4. SECURITY POSTURE (0-10 points) — computation only
     # ============================================================
     security_score = 5  # Base score
     security_factors = []
@@ -1354,23 +1260,29 @@ async def _gather_peer_risk_data(
     # ============================================================
     # CALCULATE TOTAL SCORE
     # ============================================================
-    total_score = sum(s["score"] for s in risk_data["scores"].values())
-    max_score = sum(s["max"] for s in risk_data["scores"].values())
+    # Skip categories that report score=None (e.g. stability when RIPEstat
+    # was unavailable). Their max is also excluded so the percentage stays
+    # honest rather than penalising the ASN for our outage.
+    total_score = sum(s["score"] for s in risk_data["scores"].values() if s["score"] is not None)
+    max_score = sum(s["max"] for s in risk_data["scores"].values() if s["score"] is not None)
 
     risk_data["total_score"] = total_score
     risk_data["max_score"] = max_score
     risk_data["percentage"] = round(total_score / max_score * 100, 1)
 
-    # Determine risk level
-    if total_score >= 80:
+    # Determine risk level from percentage so the bands still mean what
+    # slide 9 says (80%+ LOW, 60-79 MODERATE, 40-59 ELEVATED, <40 HIGH)
+    # even when a category drops out as "unknown" and shrinks max_score.
+    pct = risk_data["percentage"]
+    if pct >= 80:
         risk_level = "LOW"
         risk_color = "green"
         recommendation = "RECOMMENDED"
-    elif total_score >= 60:
+    elif pct >= 60:
         risk_level = "MODERATE"
         risk_color = "yellow"
         recommendation = "ACCEPTABLE"
-    elif total_score >= 40:
+    elif pct >= 40:
         risk_level = "ELEVATED"
         risk_color = "orange1"
         recommendation = "CAUTION"
@@ -1481,13 +1393,16 @@ async def run_peer_risk(
     score_table.add_column("Key Factors")
 
     for category, data in risk_data["scores"].items():
-        score_str = f"{data['score']}/{data['max']}"
-        if data["score"] >= data["max"] * 0.8:
-            score_str = f"[green]{score_str}[/]"
-        elif data["score"] >= data["max"] * 0.5:
-            score_str = f"[yellow]{score_str}[/]"
+        if data["score"] is None:
+            score_str = f"[dim]N/A[/] / {data['max']}"
         else:
-            score_str = f"[red]{score_str}[/]"
+            score_str = f"{data['score']}/{data['max']}"
+            if data["score"] >= data["max"] * 0.8:
+                score_str = f"[green]{score_str}[/]"
+            elif data["score"] >= data["max"] * 0.5:
+                score_str = f"[yellow]{score_str}[/]"
+            else:
+                score_str = f"[red]{score_str}[/]"
 
         factors_str = "; ".join(data["factors"][:3]) if data["factors"] else "-"
         if len(factors_str) > 80:

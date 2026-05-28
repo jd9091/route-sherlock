@@ -12,26 +12,59 @@ Historical BGP intelligence CLI for network operators. Answer questions like "Sh
 
 ## Installation
 
+> All `pip install` steps below assume an **activated venv** running
+> **Python 3.11**. Newer Pythons (3.14+) can break `pipx`/`ensurepip`
+> workarounds, and `pybgpstream` only ships wheels for the supported
+> CPython line. Activate the venv before each step.
+
 ```bash
 # Clone the repo
 git clone https://github.com/jd9091/route-sherlock.git
 cd route-sherlock
 
-# Create virtual environment (requires Python 3.11+)
+# Create + activate virtual environment (Python 3.11)
 python3.11 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install
 pip install -e .
 
-# For AI synthesis (optional)
+# (Optional) AI synthesis
 pip install -e ".[ai]"
 export ANTHROPIC_API_KEY="your-key"
-
-# For historical backtesting (optional)
-brew install bgpstream  # macOS
-pip install pybgpstream
 ```
+
+### Optional: Historical backtesting
+
+`route-sherlock backtest` reads RouteViews / RIPE RIS archives via
+`libbgpstream`. The system library must be installed **before** the
+Python bindings, and the bindings must go into the same activated venv
+as `route-sherlock` itself.
+
+```bash
+# 1. System library
+brew install bgpstream             # macOS
+# sudo apt install libbgpstream2-dev  # Debian/Ubuntu
+# (other distros: build from https://bgpstream.caida.org/)
+
+# 2. Python bindings — venv must be activated
+source venv/bin/activate
+pip install pybgpstream
+# Linux from-source: prepend
+#   CFLAGS="-I/path/to/bgpstream/include" \
+#   LDFLAGS="-L/path/to/bgpstream/lib"
+```
+
+> **First backtest is slow.** RouteViews / RIPE RIS dumps are pulled on
+> demand and can take several minutes the first time a window is
+> queried. Subsequent runs hit the local cache (`~/.cache/route-sherlock/`)
+> and return in under a second — pre-warm before any live demo.
+
+> **Multiple installs gotcha.** If `which -a route-sherlock` shows more
+> than one path (e.g. a `~/.local/...` shim from a previous install),
+> `pybgpstream` only counts if it lives in the same venv as the binary
+> your shell actually resolves. Either uninstall the extras or call the
+> intended binary by absolute path.
 
 ### Optional: PeeringDB API Key
 

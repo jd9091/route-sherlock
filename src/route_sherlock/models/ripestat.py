@@ -85,6 +85,28 @@ class BGPUpdates(BaseModel):
     nr_updates: int = 0
 
 
+class BGPUpdateActivitySample(BaseModel):
+    """One histogram bin from bgp-update-activity."""
+    starttime: str = ""
+    announcements: int | None = 0
+    withdrawals: int | None = 0
+
+
+class BGPUpdateActivity(BaseModel):
+    """Histogrammed BGP update activity. Scales to multi-day windows where
+    bgp-updates 502s on high-volume ASNs."""
+    resource: str = ""
+    query_starttime: str = ""
+    query_endtime: str = ""
+    sampling_period: float = 0.0
+    sampling_period_human: str = ""
+    updates: list[BGPUpdateActivitySample] = Field(default_factory=list)
+
+    @property
+    def total_updates(self) -> int:
+        return sum((s.announcements or 0) + (s.withdrawals or 0) for s in self.updates)
+
+
 class Prefix(BaseModel):
     """Announced prefix."""
     prefix: str = ""

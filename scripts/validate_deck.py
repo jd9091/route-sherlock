@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
-DECK_FILENAME = "20260107_Dave_Peering_Risk_Intelligence_v2_fmt.pptx"
+DECK_FILENAME = "20260107_Dave_Peering_Risk_Intelligence_v3_fmt.pptx"
 
 
 @dataclass
@@ -51,7 +51,7 @@ CASES: list[Case] = [
         title="CLI surface area",
         claim="The tool is a CLI with named commands (peer-risk, backtest, etc.).",
         command="route-sherlock --help",
-        expect=["peer-risk", "stability", "backtest", "lookup", "compare", "ix-presence"],
+        expect=["peer-risk", "backtest", "lookup", "compare", "ix-presence"],
     ),
     Case(
         tid="T02",
@@ -68,14 +68,6 @@ CASES: list[Case] = [
         claim="AS267613 returns MODERATE with churn warning.",
         command="route-sherlock peer-risk AS267613",
         expect=["AS267613", "ELETRONET", "MODERATE", "High BGP churn"],
-    ),
-    Case(
-        tid="T04",
-        slide="slide 10",
-        title="Stability score — slide 10",
-        claim="Stability command yields a numeric score and updates/day.",
-        command="route-sherlock stability AS267613 --days 30",
-        expect=["Stability", "AS267613", "Updates/Day"],
     ),
     Case(
         tid="T05",
@@ -181,7 +173,12 @@ def run_case(c: Case) -> dict:
         timed_out = True
     duration = time.monotonic() - started
 
-    missing = [e for e in c.expect if e not in output]
+    # Collapse whitespace + Rich's box-drawing borders so expectations
+    # survive table wrapping (e.g. "RPKI sample" gets split across rows
+    # with column borders between them — the substring is still present
+    # semantically).
+    flat = re.sub(r"[\s│─╭╮╰╯├┤┬┴┼]+", " ", output).strip()
+    missing = [e for e in c.expect if e not in output and " ".join(e.split()) not in flat]
     passed = not missing and exit_code == 0 and not timed_out
     return {
         "case": c,

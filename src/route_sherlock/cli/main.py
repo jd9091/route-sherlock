@@ -30,12 +30,6 @@ def get_peeringdb_key() -> str | None:
     return os.environ.get("PEERINGDB_API_KEY")
 
 
-def normalize_asn(asn: str) -> int:
-    """Convert ASN string to integer."""
-    asn = asn.strip().upper().replace("AS", "")
-    return int(asn)
-
-
 @app.command()
 def lookup(
     resource: str = typer.Argument(..., help="ASN (AS13335) or prefix (1.1.1.0/24)"),
@@ -61,8 +55,11 @@ def peering_eval(
     Evaluate peering opportunity with a target ASN.
 
     Examples:
-        route-sherlock peering-eval --my-asn AS64500 --target AS13335
-        route-sherlock peering-eval -m AS64500 -t AS13335 --ix "DE-CIX Frankfurt"
+        route-sherlock peering-eval --my-asn AS6939 --target AS13335
+        route-sherlock peering-eval -m AS6939 -t AS13335 --ix "DE-CIX Frankfurt"
+
+    Note: substitute your own ASN for --my-asn. Documentation ASNs
+    (AS64496-AS64511, RFC 5398) are not in PeeringDB and will fail.
     """
     from route_sherlock.cli.commands import run_peering_eval
     asyncio.run(run_peering_eval(my_asn, target, ix))
@@ -94,22 +91,6 @@ def investigate(
     """
     from route_sherlock.cli.commands import run_investigate
     asyncio.run(run_investigate(resource, time, duration, use_ai=ai))
-
-
-@app.command()
-def stability(
-    asn: str = typer.Argument(..., help="ASN to analyze"),
-    days: int = typer.Option(90, "--days", "-d", help="Days of history to analyze"),
-):
-    """
-    Calculate stability score for an ASN.
-
-    Examples:
-        route-sherlock stability AS13335
-        route-sherlock stability AS13335 --days 30
-    """
-    from route_sherlock.cli.commands import run_stability
-    asyncio.run(run_stability(asn, days))
 
 
 @app.command("ix-presence")
@@ -164,7 +145,7 @@ def backtest(
 
 @app.command("peer-risk")
 def peer_risk(
-    target: str = typer.Argument(..., help="Target ASN to evaluate (e.g., AS64500)"),
+    target: str = typer.Argument(..., help="Target ASN to evaluate (e.g., AS13335)"),
     my_asn: Optional[str] = typer.Option(None, "--my-asn", "-m", help="Your ASN (for IX overlap analysis)"),
     days: int = typer.Option(90, "--days", "-d", help="Days of history to analyze"),
     ai: bool = typer.Option(False, "--ai", help="Use Claude AI for risk assessment"),
@@ -198,13 +179,13 @@ def peer_risk(
     to generate a risk score and recommendation.
 
     Examples:
-        route-sherlock peer-risk AS64500
-        route-sherlock peer-risk AS64500 --my-asn AS13335
-        route-sherlock peer-risk AS64500 --days 180 --ai
-        route-sherlock peer-risk AS64500 --offline
-        route-sherlock peer-risk AS64500 --json | jq '.scores'
-        route-sherlock peer-risk AS64500 --json --output AS64500.json
-        route-sherlock peer-risk AS64500 --cache-ttl 604800   # week-long research run
+        route-sherlock peer-risk AS13335
+        route-sherlock peer-risk AS15169 --my-asn AS13335
+        route-sherlock peer-risk AS267613 --days 180 --ai
+        route-sherlock peer-risk AS13335 --offline
+        route-sherlock peer-risk AS13335 --json | jq '.scores'
+        route-sherlock peer-risk AS13335 --json --output AS13335.json
+        route-sherlock peer-risk AS13335 --cache-ttl 604800   # week-long research run
     """
     from route_sherlock.cli.commands import run_peer_risk
     asyncio.run(run_peer_risk(
@@ -213,6 +194,48 @@ def peer_risk(
         json_output=json_output, output_path=output,
         cache_ttl=cache_ttl,
     ))
+
+
+@app.command("peer-risk-v2")
+def peer_risk_v2(
+    target: str = typer.Argument(..., help="Target ASN to evaluate (e.g., AS13335)"),
+    history_months: int = typer.Option(
+        60, "--history-months",
+        help="How far back to scan the documented-incident registry. "
+             "Default 60 (5y). For strict operational use, 24 is appropriate.",
+    ),
+    json_output: bool = typer.Option(
+        False, "--json", help="Emit full result as JSON instead of the Rich panel.",
+    ),
+):
+    """
+    Evaluate peer-risk with v2 three-pillar scoring.
+
+    Outputs Track Record / Routing Hygiene / Coordination classifications,
+    each backed by externally-measurable evidence. Replaces the v1 0–90
+    composite. Every finding cites its data source.
+
+    Examples:
+        route-sherlock peer-risk-v2 AS13335
+        route-sherlock peer-risk-v2 AS262504        # known leak injector
+        route-sherlock peer-risk-v2 AS13335 --history-months 24
+        route-sherlock peer-risk-v2 AS15169 --json
+    """
+    import json as _json
+    from route_sherlock.analysis.peer_risk_v2 import evaluate_peer_risk_v2
+    from route_sherlock.analysis.peer_risk_render import render
+    from dataclasses import asdict
+
+    asn_int = int(target.upper().lstrip("AS"))
+    result = asyncio.run(evaluate_peer_risk_v2(asn_int, history_months=history_months))
+
+    if json_output:
+        # Convert dataclass tree to dict; raw already serialised
+        out = asdict(result)
+        print(_json.dumps(out, default=str, indent=2))
+        return
+
+    render(result, console)
 
 
 def main():
